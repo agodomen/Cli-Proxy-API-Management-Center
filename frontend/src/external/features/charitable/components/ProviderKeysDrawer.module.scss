@@ -1,0 +1,12 @@
+.body { display: flex; flex-direction: column; gap: 12px; }
+.summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: 12px; }
+.tableWrap { overflow: auto; border: 1px solid var(--border-color); border-radius: 10px; }
+.table { width: 100%; min-width: 720px; border-collapse: collapse; }
+.table th, .table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: left; vertical-align: top; }
+.table th { color: var(--text-secondary); background: var(--bg-secondary); font-size: 11px; }
+.table td { color: var(--text-primary); font-size: 12px; }
+.table td small { display: block; margin-top: 4px; color: var(--text-secondary); }
+.empty { padding: 36px 16px; color: var(--text-secondary); text-align: center; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.footer > div { display: flex; align-items: center; gap: 8px; }
+.rowActions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

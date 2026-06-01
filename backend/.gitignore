@@ -1,0 +1,11 @@
+# CLIProxyAPI runtime state
+/auths/
+/logs/
+/plugins/
+/config.yaml
+/management.html
+/temp/
+
+# Local build outputs
+/cli-proxy-api
+/cpamc

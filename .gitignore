@@ -9,15 +9,21 @@ lerna-debug.log*
 api.md
 usage.json
 CLAUDE.md
-AGENTS.md
 management-api*
+!backend/examples/plugin/management-api/
+!backend/examples/plugin/management-api/**
 antigravity_usage.json
 codex_usage.json
 style.md
 
 node_modules
+frontend/node_modules
 dist
+frontend/dist
 dist-ssr
+doc/node_modules
+doc/.vitepress/cache
+doc/.vitepress/dist
 *.local
 skills
 
@@ -33,3 +39,11 @@ settings.local.json
 *.njsproj
 *.sln
 *.sw?
+
+# Backend local binaries / db
+backend/cpamc
+backend/cli-proxy-api
+backend/server
+backend/*.sqlite
+backend/*.sqlite-shm
+backend/*.sqlite-wal

@@ -1,0 +1,44 @@
+services:
+  cpamc-test:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        VERSION: dev
+        HTTP_PORT: "18317"
+        LOCAL_ENGINE_PORT: "18318"
+    image: agodomen/cpamc-test:latest
+    container_name: cpamc-test
+    restart: unless-stopped
+    ports:
+      - "28317:18317"
+      - "28318:18318"
+    environment:
+      HTTP_ADDR: "0.0.0.0:18317"
+      USAGE_DB_PATH: "/data/usage.sqlite"
+      USAGE_COLLECTOR_MODE: "auto"
+      USAGE_RESP_QUEUE: "usage"
+      USAGE_RESP_POP_SIDE: "right"
+      USAGE_BATCH_SIZE: "100"
+      USAGE_POLL_INTERVAL_MS: "500"
+      USAGE_QUERY_LIMIT: "50000"
+      USAGE_CORS_ORIGINS: "*"
+      CPAMC_LOCAL_ENGINE_ENABLED: "true"
+      CPAMC_LOCAL_ENGINE_CONFIG: "/data/cliproxyapi/config.yaml"
+      CPAMC_LOCAL_ENGINE_HOST: "0.0.0.0"
+      CPAMC_LOCAL_ENGINE_PORT: "18318"
+      # Management credentials for frontend login (bootstraps config.yaml on first run).
+      # Sourced from host env / start.sh; only consumed when secret-key is empty.
+      # After that config.yaml is authoritative. Empty default skips bootstrap.
+      MANAGEMENT_PASSWORD: ${MANAGEMENT_PASSWORD:-}
+      MANAGEMENT_REMOTE: "1"
+    volumes:
+      - cpamc-test-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:18317/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  cpamc-test-data:

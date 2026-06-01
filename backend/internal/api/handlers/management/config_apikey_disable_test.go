@@ -1,0 +1,191 @@
+package management
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
+	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/watcher/synthesizer"
+	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+)
+
+func TestSetConfigAPIKeyExcludedAll(t *testing.T) {
+	gotDisable := setConfigAPIKeyExcludedAll([]string{"gpt-5"}, true)
+	if len(gotDisable) != 2 || gotDisable[0] != "gpt-5" || gotDisable[1] != "*" {
+		t.Fatalf("unexpected disable list: %#v", gotDisable)
+	}
+	gotEnable := setConfigAPIKeyExcludedAll([]string{"gpt-5", "*"}, false)
+	if len(gotEnable) != 1 || gotEnable[0] != "gpt-5" {
+		t.Fatalf("unexpected enable list: %#v", gotEnable)
+	}
+}
+
+func TestToggleConfigAPIKeyExcludedAll_XAI(t *testing.T) {
+	cfg := &config.Config{
+		XAIKey: []config.XAIKey{{
+			APIKey:  "xai-test",
+			BaseURL: "https://api.x.ai/v1",
+		}},
+	}
+	idGen := synthesizer.NewStableIDGenerator()
+	authID, _ := idGen.Next("xai:apikey", "xai-test", "https://api.x.ai/v1")
+	auth := &coreauth.Auth{
+		ID:       authID,
+		Provider: "xai",
+		Attributes: map[string]string{
+			"api_key":  "xai-test",
+			"base_url": "https://api.x.ai/v1",
+			"source":   "config:xai[abc]",
+		},
+	}
+
+	handled, errToggle := toggleConfigAPIKeyExcludedAll(cfg, auth, true)
+	if errToggle != nil || !handled {
+		t.Fatalf("toggle disable: handled=%v err=%v", handled, errToggle)
+	}
+	if len(cfg.XAIKey[0].ExcludedModels) != 1 || cfg.XAIKey[0].ExcludedModels[0] != "*" {
+		t.Fatalf("excluded-models = %#v, want [*]", cfg.XAIKey[0].ExcludedModels)
+	}
+}
+
+func TestToggleConfigAPIKeyExcludedAll_Codex(t *testing.T) {
+	cfg := &config.Config{
+		CodexKey: []config.CodexKey{{
+			APIKey:  "sk-test",
+			BaseURL: "https://example.com/v1",
+		}},
+	}
+	idGen := synthesizer.NewStableIDGenerator()
+	authID, _ := idGen.Next("codex:apikey", "sk-test", "https://example.com/v1")
+	auth := &coreauth.Auth{
+		ID:       authID,
+		Provider: "codex",
+		Attributes: map[string]string{
+			"api_key":  "sk-test",
+			"base_url": "https://example.com/v1",
+			"source":   "config:codex[abc]",
+		},
+	}
+
+	handled, err := toggleConfigAPIKeyExcludedAll(cfg, auth, true)
+	if err != nil || !handled {
+		t.Fatalf("toggle disable: handled=%v err=%v", handled, err)
+	}
+	if len(cfg.CodexKey[0].ExcludedModels) != 1 || cfg.CodexKey[0].ExcludedModels[0] != "*" {
+		t.Fatalf("expected excluded-models [*], got %#v", cfg.CodexKey[0].ExcludedModels)
+	}
+
+	handled, err = toggleConfigAPIKeyExcludedAll(cfg, auth, false)
+	if err != nil || !handled {
+		t.Fatalf("toggle enable: handled=%v err=%v", handled, err)
+	}
+	if len(cfg.CodexKey[0].ExcludedModels) != 0 {
+		t.Fatalf("expected excluded-models cleared, got %#v", cfg.CodexKey[0].ExcludedModels)
+	}
+}
+
+func TestToggleConfigAPIKeyExcludedAll_OpenAICompat_SingleKeyProviderLevel(t *testing.T) {
+	cfg := &config.Config{
+		OpenAICompatibility: []config.OpenAICompatibility{{
+			Name:    "kimi",
+			BaseURL: "https://api.example.com/v1",
+			APIKeyEntries: []config.OpenAICompatibilityAPIKey{
+				{APIKey: "sk-compat"},
+			},
+		}},
+	}
+	idGen := synthesizer.NewStableIDGenerator()
+	authID, _ := idGen.Next("openai-compatibility:kimi", "sk-compat", "https://api.example.com/v1", "")
+	auth := &coreauth.Auth{
+		ID:       authID,
+		Provider: "openai-compatible-kimi",
+		Attributes: map[string]string{
+			"api_key":  "sk-compat",
+			"base_url": "https://api.example.com/v1",
+			"source":   "config:kimi[abc]",
+		},
+	}
+
+	handled, err := toggleConfigAPIKeyExcludedAll(cfg, auth, true)
+	if err != nil || !handled {
+		t.Fatalf("toggle disable: handled=%v err=%v", handled, err)
+	}
+	if !cfg.OpenAICompatibility[0].Disabled {
+		t.Fatalf("expected provider-level disabled for single-key openai-compat")
+	}
+
+	handled, err = toggleConfigAPIKeyExcludedAll(cfg, auth, false)
+	if err != nil || !handled {
+		t.Fatalf("toggle enable: handled=%v err=%v", handled, err)
+	}
+	if cfg.OpenAICompatibility[0].Disabled {
+		t.Fatalf("expected provider-level re-enabled")
+	}
+}
+
+func TestToggleConfigAPIKeyExcludedAll_OpenAICompat_MultiKeyRejected(t *testing.T) {
+	cfg := &config.Config{
+		OpenAICompatibility: []config.OpenAICompatibility{{
+			Name:    "kimi",
+			BaseURL: "https://api.example.com/v1",
+			APIKeyEntries: []config.OpenAICompatibilityAPIKey{
+				{APIKey: "sk-compat"},
+				{APIKey: "sk-other"},
+			},
+		}},
+	}
+	idGen := synthesizer.NewStableIDGenerator()
+	authID, _ := idGen.Next("openai-compatibility:kimi", "sk-compat", "https://api.example.com/v1", "")
+	auth := &coreauth.Auth{
+		ID:       authID,
+		Provider: "openai-compatible-kimi",
+		Attributes: map[string]string{
+			"api_key":  "sk-compat",
+			"base_url": "https://api.example.com/v1",
+			"source":   "config:kimi[abc]",
+		},
+	}
+
+	handled, err := toggleConfigAPIKeyExcludedAll(cfg, auth, true)
+	if handled {
+		t.Fatalf("expected multi-key disable to be rejected, handled=true")
+	}
+	if err == nil {
+		t.Fatalf("expected multi-key disable error")
+	}
+	if !strings.Contains(err.Error(), "key count < 2") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.OpenAICompatibility[0].Disabled {
+		t.Fatalf("provider must remain enabled when multi-key disable is rejected")
+	}
+}
+
+func TestToggleConfigAPIKeyExcludedAll_OpenAICompatLegacyNoEntries(t *testing.T) {
+	cfg := &config.Config{
+		OpenAICompatibility: []config.OpenAICompatibility{{
+			Name:    "legacy",
+			BaseURL: "https://api.example.com/v1",
+		}},
+	}
+	idGen := synthesizer.NewStableIDGenerator()
+	authID, _ := idGen.Next("openai-compatibility:legacy", "https://api.example.com/v1")
+	auth := &coreauth.Auth{
+		ID:       authID,
+		Provider: "openai-compatible-legacy",
+		Attributes: map[string]string{
+			"base_url": "https://api.example.com/v1",
+			"source":   "config:legacy[abc]",
+			"api_key":  "placeholder",
+		},
+	}
+	// IsConfigAPIKeyAuth requires api_key attribute; for legacy empty-entry synthesizer
+	// may still create auth without key in some paths. Force attribute for matcher path.
+	handled, err := toggleConfigAPIKeyExcludedAll(cfg, auth, true)
+	if err != nil || !handled {
+		t.Fatalf("legacy toggle disable: handled=%v err=%v", handled, err)
+	}
+	if !cfg.OpenAICompatibility[0].Disabled {
+		t.Fatalf("expected provider-level disable for legacy openai-compat without entries")
+	}
+}
