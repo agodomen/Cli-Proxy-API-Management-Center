@@ -44,6 +44,12 @@ interface BaseProviderFormProps {
   formId: string;
   onSubmit: (input: ProviderEntryFormInput) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
+  /** Extra toolbar content rendered after the "Test all" button in the API key entries section */
+  entryToolbarExtra?: React.ReactNode;
+  /** Render extra content inside each entry card header (e.g. MoveDropdown) */
+  renderEntryCardExtra?: (realIdx: number, entry: ApiKeyEntryInput) => React.ReactNode;
+  /** Filter which entries to display; return false to hide an entry */
+  entryFilter?: (realIdx: number, connectivityStatus: ConnectivityState) => boolean;
 }
 
 const emptyHeader = () => ({ key: '', value: '' });
@@ -189,6 +195,9 @@ export function BaseProviderForm({
   formId,
   onSubmit,
   onDirtyChange,
+  entryToolbarExtra,
+  renderEntryCardExtra,
+  entryFilter,
 }: BaseProviderFormProps) {
   const { t } = useTranslation();
   const descriptor = PROVIDER_DESCRIPTORS[brand];
@@ -696,17 +705,22 @@ export function BaseProviderForm({
                 <span>{t('providersPage.connectivity.testAll')}</span>
               </button>
             </div>
+            {entryToolbarExtra ? (
+              <div className={styles.entriesToolbarExtra}>{entryToolbarExtra}</div>
+            ) : null}
             {[...apiKeyEntries].reverse().map((entry, visualIdx) => {
               const realIdx = apiKeyEntries.length - 1 - visualIdx;
               const status = connectivity.openaiStatuses[realIdx] ?? {
                 state: 'idle' as ConnectivityState,
                 message: '',
               };
+              if (entryFilter && !entryFilter(realIdx, status.state)) return null;
               return (
                 <div key={realIdx} className={styles.entryCard}>
                   <div className={styles.entryCardHeader}>
                     <span>{t('providersPage.form.apiKeyEntry', { index: realIdx + 1 })}</span>
                     <div className={styles.entryCardHeaderRight}>
+                      {renderEntryCardExtra ? renderEntryCardExtra(realIdx, entry) : null}
                       <ConnectivityStatusIcon state={status.state} />
                       <button
                         type="button"
@@ -737,7 +751,7 @@ export function BaseProviderForm({
                       <input
                         className={styles.passwordInput}
                         type={showPasswords.has(realIdx) ? 'text' : 'password'}
-                        value={entry.apiKey}
+                        value={entry.apiKey || entry.existingApiKey || ''}
                         onChange={(e) =>
                           updateField(
                             'apiKeyEntries',

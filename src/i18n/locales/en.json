@@ -113,6 +113,7 @@
     "basic_settings": "Basic Settings",
     "api_keys": "API Keys",
     "ai_providers": "AI Providers",
+    "service_providers": "Key Management",
     "auth_files": "Auth Files",
     "oauth": "OAuth Login",
     "quota_management": "Quota Management",
@@ -129,6 +130,7 @@
   "nav_meta": {
     "dashboard": "Operations overview",
     "ai_providers": "Upstream model routing",
+    "service_providers": "API key entry management & migration",
     "auth_files": "Auth files & credentials",
     "oauth": "OAuth authorization",
     "quota_management": "API keys & limits",
@@ -1399,6 +1401,60 @@
     },
     "modelCatalog": {
       "notLoaded": "Not loaded"
+    }
+  },
+  "serviceProviders": {
+    "header": {
+      "title": "Provider Management"
+    },
+    "sidebar": {
+      "baseUrl": "Base URLs",
+      "searchPlaceholder": "Search addresses..."
+    },
+    "panel": {
+      "title": "API Key Entries"
+    },
+    "filter": {
+      "all": "All",
+      "valid": "Valid",
+      "invalid": "Invalid"
+    },
+    "search": {
+      "placeholder": "Search API keys..."
+    },
+    "table": {
+      "apiKey": "API Key",
+      "proxyUrl": "Proxy URL",
+      "status": "Status",
+      "statusDesc": "Status Description"
+    },
+    "status": {
+      "valid": "Valid",
+      "invalid": "Invalid"
+    },
+    "move": {
+      "action": "Move",
+      "selectTarget": "Select target",
+      "noTarget": "No targets available (requires same base URL)",
+      "sameProvider": "Already in this provider",
+      "duplicateKeyConfirm": "This API key already exists in target provider \"{{name}}\", remove from current provider only?",
+      "removeSuccess": "Removed from current provider"
+    },
+    "actions": {
+      "showAllKeys": "Show All",
+      "hideAllKeys": "Hide All",
+      "testAll": "Test All",
+      "showKey": "Show key",
+      "hideKey": "Hide key"
+    },
+    "toast": {
+      "moveSuccess": "API key entry moved successfully",
+      "moveFailed": "Failed to move API key entry",
+      "deleteSuccess": "API key entry deleted successfully",
+      "deleteFailed": "Failed to delete API key entry",
+      "updateSuccess": "API key entry updated successfully",
+      "updateFailed": "Failed to update API key entry",
+      "duplicateNames": "Duplicate provider names detected: {{names}}, please modify before proceeding"
     }
   }
 }

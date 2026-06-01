@@ -113,6 +113,7 @@
     "basic_settings": "基础设置",
     "api_keys": "API 密钥",
     "ai_providers": "AI 提供商",
+    "service_providers": "密钥管理",
     "auth_files": "认证文件",
     "oauth": "OAuth 登录",
     "quota_management": "配额管理",
@@ -129,6 +130,7 @@
   "nav_meta": {
     "dashboard": "运行总览",
     "ai_providers": "上游模型路由",
+    "service_providers": "密钥条目管理与迁移",
     "auth_files": "Auth 文件与凭证",
     "oauth": "OAuth 授权登录",
     "quota_management": "API Key 与限额",
@@ -1399,6 +1401,60 @@
     },
     "modelCatalog": {
       "notLoaded": "未加载"
+    }
+  },
+  "serviceProviders": {
+    "header": {
+      "title": "提供商管理"
+    },
+    "sidebar": {
+      "baseUrl": "服务地址",
+      "searchPlaceholder": "搜索地址..."
+    },
+    "panel": {
+      "title": "密钥条目"
+    },
+    "filter": {
+      "all": "全部",
+      "valid": "有效",
+      "invalid": "无效"
+    },
+    "search": {
+      "placeholder": "搜索 API 密钥..."
+    },
+    "table": {
+      "apiKey": "API 密钥",
+      "proxyUrl": "代理地址",
+      "status": "状态",
+      "statusDesc": "状态描述"
+    },
+    "status": {
+      "valid": "有效",
+      "invalid": "无效"
+    },
+    "move": {
+      "action": "移动",
+      "selectTarget": "选择目标",
+      "noTarget": "无可用目标（需相同服务地址）",
+      "sameProvider": "已在该提供商中",
+      "duplicateKeyConfirm": "该 API 密钥已存在于目标提供商 \"{{name}}\" 中，是否仅从当前提供商中移出？",
+      "removeSuccess": "已从当前提供商中移出"
+    },
+    "actions": {
+      "showAllKeys": "显示全部",
+      "hideAllKeys": "隐藏全部",
+      "testAll": "全部测试",
+      "showKey": "显示密钥",
+      "hideKey": "隐藏密钥"
+    },
+    "toast": {
+      "moveSuccess": "密钥条目移动成功",
+      "moveFailed": "密钥条目移动失败",
+      "deleteSuccess": "密钥条目删除成功",
+      "deleteFailed": "密钥条目删除失败",
+      "updateSuccess": "密钥条目更新成功",
+      "updateFailed": "密钥条目更新失败",
+      "duplicateNames": "检测到重复的提供商名称: {{names}}，请修改后再操作"
     }
   }
 }

@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "login": "Войти",
     "logout": "Выйти",
@@ -1396,6 +1396,60 @@
     },
     "modelCatalog": {
       "notLoaded": "Не загружено"
+    }
+  },
+  "serviceProviders": {
+    "header": {
+      "title": "Провайдеры услуг"
+    },
+    "sidebar": {
+      "baseUrl": "Адрес сервиса",
+      "searchPlaceholder": "Поиск адреса..."
+    },
+    "panel": {
+      "title": "Ключи API"
+    },
+    "filter": {
+      "all": "Все",
+      "valid": "Действительные",
+      "invalid": "Недействительные"
+    },
+    "search": {
+      "placeholder": "Поиск API ключа..."
+    },
+    "table": {
+      "apiKey": "API ключ",
+      "proxyUrl": "Прокси",
+      "status": "Статус",
+      "statusDesc": "Описание статуса"
+    },
+    "status": {
+      "valid": "Действителен",
+      "invalid": "Недействителен"
+    },
+    "move": {
+      "action": "Переместить",
+      "selectTarget": "Выберите цель",
+      "noTarget": "Нет доступных целей (требуется одинаковый базовый URL)",
+      "sameProvider": "Уже в этом провайдере",
+      "duplicateKeyConfirm": "Этот API-ключ уже существует в целевом провайдере \"{{name}}\", удалить только из текущего провайдера?",
+      "removeSuccess": "Удалено из текущего провайдера"
+    },
+    "actions": {
+      "showAllKeys": "Показать все",
+      "hideAllKeys": "Скрыть все",
+      "testAll": "Тестировать все",
+      "showKey": "Показать ключ",
+      "hideKey": "Скрыть ключ"
+    },
+    "toast": {
+      "moveSuccess": "Ключ API успешно перемещён",
+      "moveFailed": "Не удалось переместить ключ API",
+      "deleteSuccess": "Ключ API успешно удалён",
+      "deleteFailed": "Не удалось удалить ключ API",
+      "updateSuccess": "Ключ API успешно обновлён",
+      "updateFailed": "Не удалось обновить ключ API",
+      "duplicateNames": "Обнаружены дубликаты имён провайдеров: {{names}}, измените перед продолжением"
     }
   }
 }
