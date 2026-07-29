@@ -107,6 +107,10 @@
     "logs": "Logs Viewer",
     "system_info": "Management Center Info"
   },
+  "proxy_accelerator_url_invalid": "加速器地址无效，请使用 https:// 开头的 web 加速器 URL",
+  "proxy_accelerator_url_placeholder": "https://gh-proxy.com",
+  "proxy_mode_accelerator_tip": "使用自定义加速器前缀重写 GitHub 资源 URL（如 gh-proxy.com）。支持 Releases 附件、Raw 文件、Git Clone、Gist、API 等。",
+  "proxy_mode_accelerator": "自定义加速",
   "nav_groups": {
     "operate": "Operate",
     "gateway": "Gateway",
@@ -1237,7 +1241,11 @@
     "proxy_save_failed": "Failed to update plugin proxy",
     "proxy_load_failed": "Failed to load plugin proxy settings",
     "proxy_validate_success": "Proxy URL is valid",
-    "proxy_hint": "Applies only to plugin-store list and install. Independent from global proxy-url."
+    "proxy_hint": "Applies only to plugin-store list and install. Independent from global proxy-url. Supports a custom proxy or a GitHub web accelerator prefix.",
+    "proxy_mode_accelerator": "Custom accelerator",
+    "proxy_mode_accelerator_tip": "Rewrite GitHub resource URLs with a web accelerator prefix (for example https://gh-proxy.com/). Covers release assets, raw files, archive downloads, git clone, Gist, and GitHub API. This is not a traditional socks/http proxy.",
+    "proxy_accelerator_url_placeholder": "https://gh-proxy.com",
+    "proxy_accelerator_url_invalid": "Invalid accelerator URL. Use an http/https web accelerator prefix (for example https://gh-proxy.com)."
   },
   "plugin_resource": {
     "page_count": "{{count}} pages",

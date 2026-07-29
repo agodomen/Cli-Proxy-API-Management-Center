@@ -315,9 +315,10 @@ func validatePluginStoreRequestURL(auth []AuthConfig, requestURL string, kind st
 	if parsed.User != nil {
 		return fmt.Errorf("plugin store url must not contain credentials")
 	}
-	if hasSensitiveQueryParameter(parsed) {
-		return fmt.Errorf("plugin store url contains sensitive query parameter")
-	}
+	// Runtime requests intentionally allow ephemeral signed download query
+	// parameters such as GitHub release CDN ?token=... values. Declared
+	// registry/manifest URLs still reject sensitive query keys via
+	// hasSensitiveQueryParameter so long-lived secrets are not stored.
 	if strings.EqualFold(parsed.Scheme, "http") && !allowInsecurePluginStoreURL(auth, requestURL, kind) {
 		return fmt.Errorf("insecure plugin store url requires matching allow-insecure auth rule")
 	}

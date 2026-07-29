@@ -46,15 +46,17 @@ build_service() {
   build_frontend
   embed_management_panel
 
-  echo "==> Building unified Go cpamc service"
-  (cd "${BACKEND_DIR}" && go build -p="${GO_BUILD_PARALLELISM:-2}" -o "${BACKEND_DIR}/cpamc" ./cmd/cpamc)
+  echo "==> Building unified Go cpamc service (CGO enabled for plugin support)"
+  # Plugin UI (/plugins, /plugin-store) is gated on X-CPA-SUPPORT-PLUGIN, which is
+  # "1" only when the binary is compiled with cgo (see backend/internal/pluginhost/support_*.go).
+  (cd "${BACKEND_DIR}" && CGO_ENABLED=1 go build -p="${GO_BUILD_PARALLELISM:-2}" -o "${BACKEND_DIR}/cpamc" ./cmd/cpamc)
 
   build_cliproxyapi
 }
 
 build_cliproxyapi() {
-  echo "==> Building integrated CLIProxyAPI compatibility entry"
-  (cd "${BACKEND_DIR}" && go build \
+  echo "==> Building integrated CLIProxyAPI compatibility entry (CGO enabled for plugin support)"
+  (cd "${BACKEND_DIR}" && CGO_ENABLED=1 go build \
     -p="${GO_BUILD_PARALLELISM:-2}" \
     -o "${BACKEND_DIR}/cli-proxy-api" \
     ./cmd/server)

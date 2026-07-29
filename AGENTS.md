@@ -169,12 +169,13 @@ Do **not** copy static assets (SVGs, images, fonts) if they already exist in the
 
 ### 3.8. Plugin-Store Proxy (`plugin-proxy`)
 
-Plugin-store list/install uses a dedicated outbound proxy independent of global `proxy-url`:
+Plugin-store list/install uses a dedicated outbound proxy/accelerator independent of global `proxy-url`:
 
-- YAML: `plugin-proxy.url` (last custom URL retained), `plugin-proxy.status` (`0` none / `1` custom / `2` system)
-- Effective proxy: `status=0` → direct; `status=2` → `proxy-url`; `status=1` → `plugin-proxy.url`
-- Management API: `GET/PUT/PATCH /v0/management/plugin-proxy`, `POST /v0/management/plugin-proxy/validate`
-- UI lives on community Plugin Store page (`frontend/src/features/plugins/PluginStorePage.tsx`); browser does not download plugins — only the backend HTTP client uses the effective proxy
+- YAML: `plugin-proxy.url` (last custom/accelerator URL retained), `plugin-proxy.status` (`0` none / `1` custom proxy / `2` system / `3` accelerator)
+- Effective traditional proxy: `status=0|3` → none; `status=2` → `proxy-url`; `status=1` → `plugin-proxy.url`
+- Effective accelerator: `status=3` → rewrite GitHub resource URLs as `plugin-proxy.url` + original absolute URL (for example `https://gh-proxy.com/https://github.com/...`)
+- Management API: `GET/PUT/PATCH /v0/management/plugin-proxy`, `POST /v0/management/plugin-proxy/validate` (`status` selects proxy vs accelerator validation)
+- UI lives on community Plugin Store page (`frontend/src/features/plugins/PluginStorePage.tsx`); browser does not download plugins — only the backend HTTP client uses the effective proxy/accelerator
 
 ### 3.9. Community Frontend Sync Policy
 

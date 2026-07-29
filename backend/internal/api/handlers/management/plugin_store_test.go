@@ -3,6 +3,7 @@ package management
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -859,6 +860,54 @@ plugins:
 	}
 	if raw := marshalPluginRaw(t, snapshotItem); !strings.Contains(raw, "mode: fast") {
 		t.Fatalf("snapshot plugin raw config lost custom field:\n%s", raw)
+	}
+}
+
+func TestInstallPluginFromStoreContinuesAfterRequestCancellation(t *testing.T) {
+	t.Parallel()
+
+	pluginsDir := t.TempDir()
+	archiveData := makeManagementPluginStoreZip(t, "sample-provider"+managementPluginExtension(runtime.GOOS), "library-data")
+	archiveName := "sample-provider_0.1.0_" + runtime.GOOS + "_" + runtime.GOARCH + ".zip"
+	checksum := sha256.Sum256(archiveData)
+	requestCtx, cancelRequest := context.WithCancel(context.Background())
+	cancelRequest()
+	h := &Handler{
+		cfg: &config.Config{
+			Plugins: config.PluginsConfig{Dir: pluginsDir},
+		},
+		configFilePath:         writeTestConfigFile(t),
+		pluginStoreRegistryURL: "https://registry.example/registry.json",
+		pluginStoreHTTPClient: fakePluginStoreHTTPClient{
+			"https://registry.example/registry.json": registryJSON(t),
+			"https://api.github.com/repos/author-name/cliproxy-sample-provider-plugin/releases/latest": []byte(`{
+				"tag_name": "v0.1.0",
+				"assets": [
+					{"name": "` + archiveName + `", "browser_download_url": "https://downloads.example/` + archiveName + `"},
+					{"name": "checksums.txt", "browser_download_url": "https://downloads.example/checksums.txt"}
+				]
+			}`),
+			"https://downloads.example/" + archiveName: archiveData,
+			"https://downloads.example/checksums.txt":  []byte(hex.EncodeToString(checksum[:]) + "  " + archiveName + "\n"),
+		},
+	}
+	reloads, reloadDone := captureConfigReload(h)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Params = gin.Params{{Key: "id", Value: "sample-provider"}}
+	c.Request = httptest.NewRequest(http.MethodPost, "/v0/management/plugin-store/sample-provider/install", nil).WithContext(requestCtx)
+
+	h.InstallPluginFromStore(c)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body=%s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	waitForAsyncReload(t, reloads)
+	waitForReloadDone(t, reloadDone)
+	targetPath := filepath.Join(pluginsDir, runtime.GOOS, runtime.GOARCH, "sample-provider-v0.1.0"+managementPluginExtension(runtime.GOOS))
+	if _, errStat := os.Stat(targetPath); errStat != nil {
+		t.Fatalf("Stat(%s) error = %v", targetPath, errStat)
 	}
 }
 

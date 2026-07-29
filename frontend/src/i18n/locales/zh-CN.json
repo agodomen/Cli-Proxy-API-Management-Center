@@ -114,6 +114,10 @@
     "plugin_pages": "插件",
     "control": "控制"
   },
+  "proxy_accelerator_url_invalid": "加速器地址无效，请使用 https:// 开头的 web 加速器 URL",
+  "proxy_accelerator_url_placeholder": "https://gh-proxy.com",
+  "proxy_mode_accelerator_tip": "使用自定义加速器前缀重写 GitHub 资源 URL（如 gh-proxy.com）。支持 Releases 附件、Raw 文件、Git Clone、Gist、API 等。",
+  "proxy_mode_accelerator": "自定义加速",
   "nav_meta": {
     "dashboard": "运行总览",
     "ai_providers": "上游模型路由",
@@ -1237,7 +1241,11 @@
     "proxy_save_failed": "更新插件代理失败",
     "proxy_load_failed": "加载插件代理设置失败",
     "proxy_validate_success": "代理地址校验通过",
-    "proxy_hint": "仅用于插件商店列表与安装下载，与全局 proxy-url 相互独立。"
+    "proxy_hint": "仅用于插件商店列表与安装下载，与全局 proxy-url 相互独立。支持自定义代理或 GitHub 资源加速前缀。",
+    "proxy_mode_accelerator": "自定义加速",
+    "proxy_mode_accelerator_tip": "通过 web 中转加速服务前缀重写 GitHub 资源 URL（例如 https://gh-proxy.com/）。适用于 Releases 附件、Raw 文件、仓库打包、Git Clone、Gist、GitHub API 等，不是传统 socks/http 代理。",
+    "proxy_accelerator_url_placeholder": "https://gh-proxy.com",
+    "proxy_accelerator_url_invalid": "加速地址无效，请使用 http/https 的 web 加速前缀（例如 https://gh-proxy.com）"
   },
   "plugin_resource": {
     "page_count": "{{count}} 个页面",

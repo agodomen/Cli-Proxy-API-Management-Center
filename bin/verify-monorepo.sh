@@ -29,9 +29,10 @@ fi
 echo "==> backend tests/build"
 (
   cd backend
+  # Keep tests CGO-flexible; binaries must enable CGO so plugin UI is advertised.
   go test ./...
-  go build -o ./cpamc ./cmd/cpamc
-  go build -o ./cli-proxy-api ./cmd/server
+  CGO_ENABLED=1 go build -o ./cpamc ./cmd/cpamc
+  CGO_ENABLED=1 go build -o ./cli-proxy-api ./cmd/server
 )
 
 echo "==> docs build"

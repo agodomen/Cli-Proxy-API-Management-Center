@@ -186,25 +186,33 @@ type Config struct {
 const (
 	// PluginProxyStatusNone means no dedicated proxy for plugin-store traffic.
 	PluginProxyStatusNone = 0
-	// PluginProxyStatusCustom means use PluginProxy.URL.
+	// PluginProxyStatusCustom means use PluginProxy.URL as a traditional outbound proxy.
 	PluginProxyStatusCustom = 1
 	// PluginProxyStatusSystem means reuse the global proxy-url.
 	PluginProxyStatusSystem = 2
+	// PluginProxyStatusAccelerator means rewrite GitHub resource URLs with PluginProxy.URL as a web accelerator prefix.
+	PluginProxyStatusAccelerator = 3
 )
 
-// PluginProxyConfig is the dedicated outbound proxy for plugin-store traffic.
+// PluginProxyConfig is the dedicated outbound proxy/accelerator for plugin-store traffic.
 // It is independent from the global proxy-url used by OAuth/providers/API calls.
 //
 // Status:
 //   - 0 (none): no proxy for plugin-store
-//   - 1 (custom): use PluginProxy.URL
+//   - 1 (custom): use PluginProxy.URL as socks/http/https proxy
 //   - 2 (system): reuse config.yaml proxy-url
+//   - 3 (accelerator): rewrite GitHub resource URLs as prefix + original URL
 //
-// URL always keeps the last custom proxy so re-enabling custom does not lose input.
+// URL keeps the last user-provided custom/accelerator value so re-enabling
+// either mode does not lose input.
 type PluginProxyConfig struct {
-	// URL is the last custom proxy URL (socks5/http/https, optional user:pass).
+	// URL is the last custom proxy URL (traditional proxy only).
+	// Accelerator uses a separate field.
 	URL string `yaml:"url,omitempty" json:"url"`
-	// Status is 0=none, 1=custom, 2=system.
+	// Accelerator is the web accelerator base used when status=3.
+	// Example: https://gh-proxy.com
+	Accelerator string `yaml:"accelerator,omitempty" json:"accelerator"`
+	// Status is 0=none, 1=custom, 2=system, 3=accelerator.
 	Status int `yaml:"status,omitempty" json:"status"`
 }
 
@@ -963,16 +971,19 @@ func (cfg *Config) NormalizePluginProxy() {
 }
 
 // NormalizePluginProxyConfig returns a normalized plugin-proxy setting.
-// Status is clamped to 0 (none), 1 (custom), or 2 (system).
+// Status is clamped to 0 (none), 1 (custom), 2 (system), or 3 (accelerator).
 func NormalizePluginProxyConfig(raw PluginProxyConfig) PluginProxyConfig {
 	out := PluginProxyConfig{
-		URL: strings.TrimSpace(raw.URL),
+		URL:       strings.TrimSpace(raw.URL),
+		Accelerator: strings.TrimSpace(raw.Accelerator),
 	}
 	switch raw.Status {
 	case PluginProxyStatusCustom:
 		out.Status = PluginProxyStatusCustom
 	case PluginProxyStatusSystem:
 		out.Status = PluginProxyStatusSystem
+	case PluginProxyStatusAccelerator:
+		out.Status = PluginProxyStatusAccelerator
 	default:
 		out.Status = PluginProxyStatusNone
 	}
@@ -980,7 +991,7 @@ func NormalizePluginProxyConfig(raw PluginProxyConfig) PluginProxyConfig {
 }
 
 // EffectivePluginStoreProxyURL returns the outbound proxy URL used by plugin-store
-// list/install clients. Empty means no dedicated proxy (direct).
+// list/install clients. Empty means no dedicated traditional proxy (direct or accelerator).
 func EffectivePluginStoreProxyURL(cfg *Config) string {
 	if cfg == nil {
 		return ""
@@ -992,8 +1003,24 @@ func EffectivePluginStoreProxyURL(cfg *Config) string {
 	case PluginProxyStatusCustom:
 		return strings.TrimSpace(pluginProxy.URL)
 	default:
+		// none / accelerator do not use a traditional HTTP(S)/SOCKS proxy.
 		return ""
 	}
+}
+
+// EffectivePluginStoreAcceleratorBase returns the web accelerator base used by
+// plugin-store list/install clients. Empty means no URL rewriting.
+// The base is expected to be an absolute http/https URL; callers rewrite
+// GitHub resource URLs as base + original absolute URL.
+func EffectivePluginStoreAcceleratorBase(cfg *Config) string {
+	if cfg == nil {
+		return ""
+	}
+	pluginProxy := NormalizePluginProxyConfig(cfg.PluginProxy)
+	if pluginProxy.Status != PluginProxyStatusAccelerator {
+		return ""
+	}
+	return strings.TrimSpace(pluginProxy.Accelerator)
 }
 
 // SanitizePayloadRules validates raw JSON payload rule params and drops invalid rules.

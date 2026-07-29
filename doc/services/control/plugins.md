@@ -29,3 +29,10 @@
 - **状态标签**：绿色（运行中）/ 红色（异常）/ 灰色（已禁用）。
 
 > 插件页面的具体实现可能依赖运行时动态注册机制，如有变动请以实际页面为准。
+
+## 构建与能力探测
+
+- 菜单 `/plugins`、`/plugin-store` 仅在后端响应头 `X-CPA-SUPPORT-PLUGIN: 1` 时显示。
+- 该头由 `backend/internal/pluginhost` 根据 **是否以 CGO 编译** 决定（`cgo` → `1`，`!cgo` → `0`）。
+- Docker 镜像与 `./build.sh` 默认以 `CGO_ENABLED=1` 构建 `cpamc`，以便管理端展示插件能力；纯 `CGO_ENABLED=0` 的二进制会隐藏上述菜单，且 Unix 上无法 `dlopen` 加载动态库插件。
+

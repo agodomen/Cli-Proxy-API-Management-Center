@@ -301,16 +301,20 @@ export const pluginStoreApi = {
     if (sourceId) params.set('source', sourceId);
     if (version) params.set('version', version);
     const query = params.size > 0 ? `?${params.toString()}` : '';
-    const data = await apiClient.post(`${path}${query}`, version ? { version } : undefined);
+    const data = await apiClient.post(`${path}${query}`, version ? { version } : undefined, {
+      timeout: 11 * 60 * 1000,
+    });
     return normalizeInstallResult(data);
   },
 };
 
-export type PluginProxyStatus = 0 | 1 | 2;
+export type PluginProxyStatus = 0 | 1 | 2 | 3;
 
 export interface PluginProxyConfig {
   url: string;
-  /** 0=none, 1=custom, 2=system */
+  /** Accelerator base used when status=3. Independent from url. */
+  accelerator: string;
+  /** 0=none, 1=custom proxy, 2=system, 3=accelerator */
   status: PluginProxyStatus;
 }
 
@@ -325,6 +329,7 @@ const normalizePluginProxyStatus = (value: unknown): PluginProxyStatus => {
     typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10);
   if (raw === 1) return 1;
   if (raw === 2) return 2;
+  if (raw === 3) return 3;
   return 0;
 };
 
@@ -332,6 +337,7 @@ const normalizePluginProxyConfig = (value: unknown): PluginProxyConfig => {
   const source = isRecord(value) ? value : {};
   return {
     url: asString(source.url).trim(),
+    accelerator: asString(source.accelerator).trim(),
     status: normalizePluginProxyStatus(source.status),
   };
 };
@@ -361,18 +367,30 @@ export const pluginProxyApi = {
     return normalizePluginProxyResponse(data);
   },
 
-  async update(input: { status: PluginProxyStatus; url?: string }): Promise<void> {
+  async update(input: {
+    status: PluginProxyStatus;
+    url?: string;
+    accelerator?: string;
+  }): Promise<void> {
     await apiClient.put('/plugin-proxy', {
       value: {
         status: input.status,
         url: input.url ?? '',
+        accelerator: input.accelerator ?? '',
       },
     });
   },
 
-  async validate(url: string): Promise<{ valid: boolean; error?: string }> {
+  async validate(
+    url: string,
+    status: PluginProxyStatus = 1
+  ): Promise<{ valid: boolean; error?: string }> {
     try {
-      await apiClient.post('/plugin-proxy/validate', { url });
+      const body =
+        status === 3
+          ? { status, accelerator: url }
+          : { status, url };
+      await apiClient.post('/plugin-proxy/validate', body);
       return { valid: true };
     } catch (error: unknown) {
       return {

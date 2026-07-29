@@ -1224,7 +1224,11 @@
     "proxy_save_failed": "Не удалось обновить прокси плагинов",
     "proxy_load_failed": "Не удалось загрузить настройки прокси плагинов",
     "proxy_validate_success": "URL прокси корректен",
-    "proxy_hint": "Только для списка и установки плагинов. Независимо от глобального proxy-url."
+    "proxy_hint": "Только для списка и установки plugin-store. Независимо от глобального proxy-url. Поддерживает свой прокси или web-ускоритель GitHub.",
+    "proxy_mode_accelerator": "Пользовательский ускоритель",
+    "proxy_mode_accelerator_tip": "Переписывает URL ресурсов GitHub через web-ускоритель (например https://gh-proxy.com/). Поддерживает release assets, raw, archive, git clone, Gist и GitHub API. Это не обычный socks/http прокси.",
+    "proxy_accelerator_url_placeholder": "https://gh-proxy.com",
+    "proxy_accelerator_url_invalid": "Неверный URL ускорителя. Используйте http/https префикс (например https://gh-proxy.com)."
   },
   "system_info": {
     "title": "Информация о центре управления",

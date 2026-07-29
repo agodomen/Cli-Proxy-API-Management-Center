@@ -5,18 +5,20 @@ import (
 	"strings"
 
 	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
+	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginstore"
 	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/proxyutil"
 	"github.com/gin-gonic/gin"
 )
 
-// GetPluginProxy returns the dedicated plugin-store proxy setting and the
-// current global proxy-url (for system-proxy UI display).
+// GetPluginProxy returns the dedicated plugin-store proxy/accelerator setting
+// and the current global proxy-url (for system-proxy UI display).
 func (h *Handler) GetPluginProxy(c *gin.Context) {
 	if h == nil || h.cfg == nil {
 		c.JSON(http.StatusOK, gin.H{
 			"plugin-proxy": config.PluginProxyConfig{Status: config.PluginProxyStatusNone},
 			"proxy-url":    "",
 			"effective":    "",
+			"accelerator":  "",
 		})
 		return
 	}
@@ -25,19 +27,22 @@ func (h *Handler) GetPluginProxy(c *gin.Context) {
 	pluginProxy := config.NormalizePluginProxyConfig(h.cfg.PluginProxy)
 	proxyURL := strings.TrimSpace(h.cfg.ProxyURL)
 	effective := config.EffectivePluginStoreProxyURL(h.cfg)
+	accelerator := config.EffectivePluginStoreAcceleratorBase(h.cfg)
 	h.mu.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{
 		"plugin-proxy": pluginProxy,
 		"proxy-url":    proxyURL,
 		"effective":    effective,
+		"accelerator":  accelerator,
 	})
 }
 
-// PutPluginProxy updates plugin-proxy url/status.
-// Status: 0=none, 1=custom, 2=system.
-// Custom (status=1) requires a valid proxy URL (http/https/socks5/socks5h).
-// Switching away from custom keeps the last custom URL.
+// PutPluginProxy updates plugin-proxy url/status/accelerator.
+// Status: 0=none, 1=custom proxy, 2=system, 3=accelerator.
+// Custom (status=1) requires a valid traditional proxy URL.
+// Accelerator (status=3) requires a valid http/https accelerator base in accelerator field.
+// Switching modes retains the last values of both fields independently.
 func (h *Handler) PutPluginProxy(c *gin.Context) {
 	if h == nil || h.cfg == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "config unavailable"})
@@ -45,15 +50,16 @@ func (h *Handler) PutPluginProxy(c *gin.Context) {
 	}
 
 	var body struct {
-		Value  *config.PluginProxyConfig `json:"value"`
-		URL    *string                   `json:"url"`
-		Status *int                      `json:"status"`
+		Value       *config.PluginProxyConfig `json:"value"`
+		URL         *string                   `json:"url"`
+		Accelerator *string                   `json:"accelerator"`
+		Status      *int                      `json:"status"`
 	}
 	if errBind := c.ShouldBindJSON(&body); errBind != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
 		return
 	}
-	if body.Value == nil && body.URL == nil && body.Status == nil {
+	if body.Value == nil && body.URL == nil && body.Accelerator == nil && body.Status == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
 		return
 	}
@@ -64,10 +70,14 @@ func (h *Handler) PutPluginProxy(c *gin.Context) {
 
 	if body.Value != nil {
 		next.URL = body.Value.URL
+		next.Accelerator = body.Value.Accelerator
 		next.Status = body.Value.Status
 	}
 	if body.URL != nil {
 		next.URL = *body.URL
+	}
+	if body.Accelerator != nil {
+		next.Accelerator = *body.Accelerator
 	}
 	if body.Status != nil {
 		next.Status = *body.Status
@@ -75,12 +85,16 @@ func (h *Handler) PutPluginProxy(c *gin.Context) {
 
 	normalized := config.NormalizePluginProxyConfig(next)
 
-	// Retain last custom URL when leaving custom so re-selecting custom restores it.
-	if normalized.Status != config.PluginProxyStatusCustom && strings.TrimSpace(normalized.URL) == "" {
+	// Retain last values independently so mode switches do not lose input.
+	if strings.TrimSpace(normalized.URL) == "" {
 		normalized.URL = strings.TrimSpace(current.URL)
 	}
+	if strings.TrimSpace(normalized.Accelerator) == "" {
+		normalized.Accelerator = strings.TrimSpace(current.Accelerator)
+	}
 
-	if normalized.Status == config.PluginProxyStatusCustom {
+	switch normalized.Status {
+	case config.PluginProxyStatusCustom:
 		url := strings.TrimSpace(normalized.URL)
 		if url == "" {
 			h.mu.Unlock()
@@ -99,6 +113,21 @@ func (h *Handler) PutPluginProxy(c *gin.Context) {
 		}
 		normalized.URL = url
 		normalized.Status = config.PluginProxyStatusCustom
+	case config.PluginProxyStatusAccelerator:
+		baseRaw := strings.TrimSpace(normalized.Accelerator)
+		if baseRaw == "" {
+			h.mu.Unlock()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "plugin-proxy accelerator is required for accelerator status"})
+			return
+		}
+		base, errNormalize := pluginstore.NormalizeAcceleratorBase(baseRaw)
+		if errNormalize != nil {
+			h.mu.Unlock()
+			c.JSON(http.StatusBadRequest, gin.H{"error": errNormalize.Error()})
+			return
+		}
+		normalized.Accelerator = base
+		normalized.Status = config.PluginProxyStatusAccelerator
 	}
 
 	h.cfg.PluginProxy = normalized
@@ -106,11 +135,14 @@ func (h *Handler) PutPluginProxy(c *gin.Context) {
 	h.mu.Unlock()
 }
 
-// ValidatePluginProxyURL checks a candidate custom plugin-proxy URL without saving.
+// ValidatePluginProxyURL checks a candidate plugin-proxy URL without saving.
+// Optional status selects validation mode: 3=accelerator base, otherwise traditional proxy.
 func (h *Handler) ValidatePluginProxyURL(c *gin.Context) {
 	var body struct {
-		URL   *string `json:"url"`
-		Value *string `json:"value"`
+		URL         *string `json:"url"`
+		Value       *string `json:"value"`
+		Accelerator *string `json:"accelerator"`
+		Status      *int    `json:"status"`
 	}
 	if errBind := c.ShouldBindJSON(&body); errBind != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body", "valid": false})
@@ -118,7 +150,9 @@ func (h *Handler) ValidatePluginProxyURL(c *gin.Context) {
 	}
 
 	raw := ""
-	if body.URL != nil {
+	if body.Accelerator != nil {
+		raw = *body.Accelerator
+	} else if body.URL != nil {
 		raw = *body.URL
 	} else if body.Value != nil {
 		raw = *body.Value
@@ -126,6 +160,21 @@ func (h *Handler) ValidatePluginProxyURL(c *gin.Context) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "plugin-proxy url is required", "valid": false})
+		return
+	}
+
+	status := config.PluginProxyStatusCustom
+	if body.Status != nil {
+		status = *body.Status
+	}
+
+	if status == config.PluginProxyStatusAccelerator {
+		base, errNormalize := pluginstore.NormalizeAcceleratorBase(raw)
+		if errNormalize != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errNormalize.Error(), "valid": false})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"valid": true, "accelerator": base, "status": config.PluginProxyStatusAccelerator})
 		return
 	}
 
@@ -139,5 +188,5 @@ func (h *Handler) ValidatePluginProxyURL(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"valid": true, "url": raw})
+	c.JSON(http.StatusOK, gin.H{"valid": true, "url": raw, "status": config.PluginProxyStatusCustom})
 }

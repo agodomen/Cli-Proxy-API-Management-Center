@@ -43,9 +43,18 @@ for TARGET in "${TARGETS[@]}"; do
   fi
 
   mkdir -p "${PACKAGE_DIR}"
+  # Plugin support (X-CPA-SUPPORT-PLUGIN + unix dlopen loaders) needs cgo.
+  # Enable it for host-native builds; keep cross-compiled targets at CGO=0.
+  HOST_GOOS="$(go env GOOS)"
+  HOST_GOARCH="$(go env GOARCH)"
+  if [[ "${GOOS}" == "${HOST_GOOS}" && "${GOARCH}" == "${HOST_GOARCH}" ]]; then
+    TARGET_CGO=1
+  else
+    TARGET_CGO=0
+  fi
   (
     cd "${WORK_DIR}/backend"
-    CGO_ENABLED=0 \
+    CGO_ENABLED="${TARGET_CGO}" \
       GOOS="${GOOS}" \
       GOARCH="${GOARCH}" \
       GOMAXPROCS="${GOMAXPROCS:-2}" \

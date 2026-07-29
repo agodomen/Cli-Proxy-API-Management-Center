@@ -155,3 +155,105 @@ func TestValidatePluginProxyURL(t *testing.T) {
 		t.Fatalf("ok validate status = %d body=%s", okRec.Code, okRec.Body.String())
 	}
 }
+
+
+func TestPutPluginProxyAcceleratorValidatesAndPersists(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "config.yaml")
+	if errWrite := os.WriteFile(configPath, []byte("proxy-url: http://system:1\n"), 0o600); errWrite != nil {
+		t.Fatalf("write config: %v", errWrite)
+	}
+	cfg, errLoad := config.LoadConfig(configPath)
+	if errLoad != nil {
+		t.Fatalf("LoadConfig: %v", errLoad)
+	}
+	h := &Handler{cfg: cfg, configFilePath: configPath}
+
+	badBody := bytes.NewBufferString(`{"value":{"status":3,"accelerator":"socks5://127.0.0.1:1080"}}`)
+	badRec := httptest.NewRecorder()
+	badCtx, _ := gin.CreateTestContext(badRec)
+	badCtx.Request = httptest.NewRequest(http.MethodPut, "/v0/management/plugin-proxy", badBody)
+	badCtx.Request.Header.Set("Content-Type", "application/json")
+	h.PutPluginProxy(badCtx)
+	if badRec.Code != http.StatusBadRequest {
+		t.Fatalf("invalid accelerator status = %d, body=%s", badRec.Code, badRec.Body.String())
+	}
+
+	okBody := bytes.NewBufferString(`{"value":{"status":3,"accelerator":"https://gh-proxy.com"}}`)
+	okRec := httptest.NewRecorder()
+	okCtx, _ := gin.CreateTestContext(okRec)
+	okCtx.Request = httptest.NewRequest(http.MethodPut, "/v0/management/plugin-proxy", okBody)
+	okCtx.Request.Header.Set("Content-Type", "application/json")
+	h.PutPluginProxy(okCtx)
+	if okRec.Code != http.StatusOK {
+		t.Fatalf("valid accelerator status = %d, body=%s", okRec.Code, okRec.Body.String())
+	}
+	if h.cfg.PluginProxy.Status != config.PluginProxyStatusAccelerator {
+		t.Fatalf("cfg after accelerator = %#v", h.cfg.PluginProxy)
+	}
+	if h.cfg.PluginProxy.Accelerator != "https://gh-proxy.com/" {
+		t.Fatalf("accelerator = %q", h.cfg.PluginProxy.Accelerator)
+	}
+	if config.EffectivePluginStoreProxyURL(h.cfg) != "" {
+		t.Fatalf("effective traditional proxy should be empty for accelerator, got %q", config.EffectivePluginStoreProxyURL(h.cfg))
+	}
+	if config.EffectivePluginStoreAcceleratorBase(h.cfg) != "https://gh-proxy.com/" {
+		t.Fatalf("effective accelerator = %q", config.EffectivePluginStoreAcceleratorBase(h.cfg))
+	}
+
+	noneBody := bytes.NewBufferString(`{"status":0}`)
+	noneRec := httptest.NewRecorder()
+	noneCtx, _ := gin.CreateTestContext(noneRec)
+	noneCtx.Request = httptest.NewRequest(http.MethodPut, "/v0/management/plugin-proxy", noneBody)
+	noneCtx.Request.Header.Set("Content-Type", "application/json")
+	h.PutPluginProxy(noneCtx)
+	if noneRec.Code != http.StatusOK {
+		t.Fatalf("none status = %d, body=%s", noneRec.Code, noneRec.Body.String())
+	}
+	if h.cfg.PluginProxy.Status != config.PluginProxyStatusNone {
+		t.Fatalf("cfg after none = %#v", h.cfg.PluginProxy)
+	}
+	if h.cfg.PluginProxy.Accelerator != "https://gh-proxy.com/" {
+		t.Fatalf("accelerator should be retained after disable, got %q", h.cfg.PluginProxy.Accelerator)
+	}
+	if config.EffectivePluginStoreAcceleratorBase(h.cfg) != "" {
+		t.Fatalf("effective accelerator after none should be empty")
+	}
+}
+
+
+func TestValidatePluginProxyAcceleratorURL(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := &Handler{}
+
+	badRec := httptest.NewRecorder()
+	badCtx, _ := gin.CreateTestContext(badRec)
+	badCtx.Request = httptest.NewRequest(http.MethodPost, "/v0/management/plugin-proxy/validate", bytes.NewBufferString(`{"status":3,"accelerator":"socks5://127.0.0.1:1080"}`))
+	badCtx.Request.Header.Set("Content-Type", "application/json")
+	h.ValidatePluginProxyURL(badCtx)
+	if badRec.Code != http.StatusBadRequest {
+		t.Fatalf("bad accelerator validate status = %d body=%s", badRec.Code, badRec.Body.String())
+	}
+
+	okRec := httptest.NewRecorder()
+	okCtx, _ := gin.CreateTestContext(okRec)
+	okCtx.Request = httptest.NewRequest(http.MethodPost, "/v0/management/plugin-proxy/validate", bytes.NewBufferString(`{"status":3,"accelerator":"https://gh-proxy.com"}`))
+	okCtx.Request.Header.Set("Content-Type", "application/json")
+	h.ValidatePluginProxyURL(okCtx)
+	if okRec.Code != http.StatusOK {
+		t.Fatalf("ok accelerator validate status = %d body=%s", okRec.Code, okRec.Body.String())
+	}
+	var payload map[string]any
+	if errDecode := json.Unmarshal(okRec.Body.Bytes(), &payload); errDecode != nil {
+		t.Fatalf("decode: %v", errDecode)
+	}
+	if payload["valid"] != true {
+		t.Fatalf("valid = %#v", payload["valid"])
+	}
+	if payload["accelerator"] != "https://gh-proxy.com/" {
+		t.Fatalf("accelerator = %#v", payload["accelerator"])
+	}
+}
+
