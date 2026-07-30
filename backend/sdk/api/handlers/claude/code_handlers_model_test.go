@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
 	"github.com/tidwall/gjson"
 )
 

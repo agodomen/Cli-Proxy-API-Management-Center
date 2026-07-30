@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/htmlsanitize"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginhost"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginapi"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/htmlsanitize"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginhost"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
 	"gopkg.in/yaml.v3"
 )
 

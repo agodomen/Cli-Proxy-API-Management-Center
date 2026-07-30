@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 	log "github.com/sirupsen/logrus"
 )
 

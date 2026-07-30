@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/interfaces"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/logging"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginabi"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginapi"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginabi"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
 	log "github.com/sirupsen/logrus"
 )
 

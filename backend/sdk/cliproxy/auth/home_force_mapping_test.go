@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	internalconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	internalhome "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executionregistry"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	internalhome "github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executionregistry"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
 )
 
 func TestHomeForceMappingAliasResult(t *testing.T) {

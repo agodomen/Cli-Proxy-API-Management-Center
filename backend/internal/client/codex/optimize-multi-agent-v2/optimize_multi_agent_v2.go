@@ -10,11 +10,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

@@ -17,9 +17,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/logging"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
 )
 
 // RoundRobinSelector provides a simple provider scoped round-robin selection strategy.

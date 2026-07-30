@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	cliproxyauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginapi"
+	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
 )
 
 // PluginAuthParser parses auth JSON owned by plugin providers.

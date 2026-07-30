@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	internalconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executionregistry"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executionregistry"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
 )
 
 func TestHomeWebsocketReusesCanonicalModelSelection(t *testing.T) {

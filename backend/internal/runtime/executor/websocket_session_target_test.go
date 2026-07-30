@@ -16,13 +16,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	internalhome "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	cliproxyauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executionregistry"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
 	"github.com/gorilla/websocket"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	internalhome "github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executionregistry"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 )
 
 type rejectSecondBindLifecycle struct {

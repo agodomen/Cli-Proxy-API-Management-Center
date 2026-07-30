@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/httputil"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/httputil"
 )
 
 type Handler struct {

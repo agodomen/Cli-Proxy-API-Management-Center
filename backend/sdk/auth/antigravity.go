@@ -8,12 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/auth/antigravity"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/browser"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/misc"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/auth/antigravity"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/browser"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/misc"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
 

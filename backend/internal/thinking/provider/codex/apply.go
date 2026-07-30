@@ -7,8 +7,8 @@
 package codex
 
 import (
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

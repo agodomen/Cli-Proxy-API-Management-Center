@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	internalconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executionregistry"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executionregistry"
 )
 
 // ConcurrencyReleaseFrame is the cumulative release accepted by Home for one credential and model.

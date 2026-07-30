@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	cliproxyauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
 func TestErrorLegacyUnkeyedLiteralCompatibility(t *testing.T) {

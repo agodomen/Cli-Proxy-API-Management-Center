@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/usage"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/usage"
 )
 
 func ptrInt64(value int64) *int64 {

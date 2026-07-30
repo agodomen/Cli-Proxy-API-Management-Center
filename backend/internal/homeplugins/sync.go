@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	sdkconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
-	sdkpluginstore "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginstore"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	sdkpluginstore "github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginstore"
 	"gopkg.in/yaml.v3"
 )
 

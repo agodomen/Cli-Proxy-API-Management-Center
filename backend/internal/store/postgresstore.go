@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/misc"
-	cliproxyauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/misc"
+	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
 

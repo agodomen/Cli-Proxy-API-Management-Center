@@ -7,11 +7,11 @@ package api
 import (
 	"time"
 
-	internalapi "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/api"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/logging"
 	"github.com/gin-gonic/gin"
+	internalapi "github.com/router-for-me/CLIProxyAPI/v7/internal/api"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/logging"
 )
 
 // ServerOption customises HTTP server construction.

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/interfaces"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginabi"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginapi"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginabi"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
 )
 
 func TestHostModelExecuteStreamDetachesFromCallbackParentCancel(t *testing.T) {

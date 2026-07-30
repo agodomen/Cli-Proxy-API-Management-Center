@@ -23,15 +23,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api"
-	sdkAuth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	clipexec "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/logging"
-	sdktr "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api"
+	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	clipexec "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/logging"
+	sdktr "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 )
 
 const (

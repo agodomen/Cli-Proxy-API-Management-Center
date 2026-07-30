@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/auth/codex"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/auth/codex"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 )
 
 type fakeCodexOAuthService struct{}

@@ -3,7 +3,7 @@ package auth
 import (
 	"testing"
 
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
 )
 
 func TestPublishSelectedAuthMetadataIncludesStableIndex(t *testing.T) {

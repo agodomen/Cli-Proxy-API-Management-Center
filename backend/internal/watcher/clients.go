@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/redisqueue"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/watcher/diff"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/watcher/synthesizer"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/diff"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/synthesizer"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
 

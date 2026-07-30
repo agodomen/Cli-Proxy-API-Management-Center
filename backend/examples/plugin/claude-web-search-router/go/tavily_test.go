@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginapi"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
 	"github.com/tidwall/gjson"
 )
 

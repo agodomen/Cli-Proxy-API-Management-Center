@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	internallogging "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/logging"
-	coreusage "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/usage"
+	internallogging "github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
+	coreusage "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/usage"
 )
 
 func init() {

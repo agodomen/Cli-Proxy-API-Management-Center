@@ -3,10 +3,10 @@ package thinking_test
 import (
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/claude"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/kimi"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/claude"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/kimi"
 	"github.com/tidwall/gjson"
 )
 

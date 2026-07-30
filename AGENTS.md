@@ -1,5 +1,7 @@
 # AGENTS.md
 
+一个以CLIProxyAPI & CLI Proxy API Management Center为基础的衍生项目。
+
 ## 1. Background & Core Objective
 
 This project (`Cli-Proxy-API-Management-Center`) is a management panel for CPA (Cli-Proxy-API). It is a **dual-upstream secondary-development monorepo** that composes:

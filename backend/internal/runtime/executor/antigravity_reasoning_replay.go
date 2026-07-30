@@ -10,11 +10,11 @@ import (
 	"reflect"
 	"strings"
 
-	internalcache "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/cache"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/runtime/executor/helps"
-	internalsignature "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
+	internalcache "github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor/helps"
+	internalsignature "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

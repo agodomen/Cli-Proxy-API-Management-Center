@@ -1,3 +1,3 @@
-module github.com/agodomen/Cli-Proxy-API-Management-Center/backend/examples/plugin/auth/go
+module github.com/router-for-me/CLIProxyAPI/examples/plugin/auth/go
 
 go 1.26

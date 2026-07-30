@@ -1,4 +1,4 @@
-module github.com/agodomen/Cli-Proxy-API-Management-Center/backend
+module github.com/router-for-me/CLIProxyAPI/v7
 
 go 1.26.0
 

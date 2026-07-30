@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	translatorapi "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/translator"
+	translatorapi "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/translator"
 	"github.com/tidwall/gjson"
 )
 

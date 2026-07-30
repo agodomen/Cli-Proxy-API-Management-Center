@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	sigcompat "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
-	. "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/antigravity/gemini"
-	. "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/gemini/openai/responses"
+	sigcompat "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )

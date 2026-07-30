@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	internallogging "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/logging"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
-	cliproxyauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/usage"
 	"github.com/gin-gonic/gin"
+	internallogging "github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/usage"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

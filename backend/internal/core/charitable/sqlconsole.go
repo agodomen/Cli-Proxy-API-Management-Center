@@ -15,7 +15,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
 )
 
 const (

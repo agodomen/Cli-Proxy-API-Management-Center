@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	sdkconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
 func TestOpenAIResponsesForwardsInvalidReasoningEncryptedContentToExecutor(t *testing.T) {

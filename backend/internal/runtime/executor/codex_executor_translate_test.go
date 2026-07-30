@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 )
 
 func TestTranslateCodexRequestPairReusesEqualPayload(t *testing.T) {

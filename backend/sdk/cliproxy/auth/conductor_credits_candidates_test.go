@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	internalconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	homekv "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	homekv "github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
 )
 
 func TestFindAllAntigravityCreditsCandidateAuths_PrefersKnownCreditsThenUnknown(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
-	coreusage "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/usage"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	coreusage "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/usage"
 )
 
 func TestContextWithRequestedModelAliasIncludesReasoningEffort(t *testing.T) {

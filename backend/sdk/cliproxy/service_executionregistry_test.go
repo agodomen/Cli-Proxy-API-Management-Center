@@ -17,15 +17,15 @@ import (
 	"testing"
 	"time"
 
-	internalconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/homeplugins"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginhost"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executionregistry"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
-	sdkpluginstore "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginstore"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/homeplugins"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginhost"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executionregistry"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
+	sdkpluginstore "github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginstore"
 )
 
 type blockingServiceCooldownStore struct {

@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/constant"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/watcher/diff"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/constant"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher/diff"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
 // ConfigSynthesizer generates Auth entries from configuration API keys.

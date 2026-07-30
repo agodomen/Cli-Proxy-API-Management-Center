@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/collector"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/httpapi"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/localengine"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/store"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/collector"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/httpapi"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/localengine"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/store"
 )
 
 func main() {

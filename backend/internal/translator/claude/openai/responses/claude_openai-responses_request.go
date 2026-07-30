@@ -8,12 +8,12 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	sigcompat "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/common"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
 	"github.com/google/uuid"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	sigcompat "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/translator/common"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

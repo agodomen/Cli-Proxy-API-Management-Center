@@ -3,7 +3,7 @@ package auth
 import (
 	"testing"
 
-	internalconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
+	internalconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 )
 
 func TestResolveOAuthUpstreamModel_SuffixPreservation(t *testing.T) {

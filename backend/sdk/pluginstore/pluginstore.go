@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	internalpluginstore "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginstore"
+	internalpluginstore "github.com/router-for-me/CLIProxyAPI/v7/internal/pluginstore"
 )
 
 const (

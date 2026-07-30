@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	sdkAuth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/auth"
+	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
 )
 
 // newAuthManager creates a new authentication manager instance with all supported

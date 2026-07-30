@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 )
 
 func TestDecodeLogCursorRejectsUnsafeFiles(t *testing.T) {

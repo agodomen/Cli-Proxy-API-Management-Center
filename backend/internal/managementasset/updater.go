@@ -17,10 +17,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/httpfetch"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	sdkconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/httpfetch"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
 )

@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
 )

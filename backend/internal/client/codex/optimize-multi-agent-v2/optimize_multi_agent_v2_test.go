@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator"
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/translator"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 	"github.com/tidwall/gjson"
 )
 

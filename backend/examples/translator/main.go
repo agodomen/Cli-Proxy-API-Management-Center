@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator/builtin"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator/builtin"
 )
 
 func main() {

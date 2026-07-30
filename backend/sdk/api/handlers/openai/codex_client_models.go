@@ -1,8 +1,8 @@
 package openai
 
 import (
-	codexmodels "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/client/codex/models"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
+	codexmodels "github.com/router-for-me/CLIProxyAPI/v7/internal/client/codex/models"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
 )
 
 func (h *OpenAIAPIHandler) codexClientModelsResponse() map[string]any {

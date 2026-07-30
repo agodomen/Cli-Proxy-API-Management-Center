@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	sigcompat "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
+	sigcompat "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

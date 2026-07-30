@@ -3,9 +3,9 @@ package cliproxy
 import (
 	"context"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/watcher"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/watcher"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
 func defaultWatcherFactory(configPath, authDir string, reload func(*config.Config)) (*WatcherWrapper, error) {

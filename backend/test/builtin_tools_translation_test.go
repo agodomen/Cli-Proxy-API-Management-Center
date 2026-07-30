@@ -3,9 +3,9 @@ package test
 import (
 	"testing"
 
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/translator"
 
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 	"github.com/tidwall/gjson"
 )
 

@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
 	"github.com/pion/sdp/v3"
 	"github.com/pion/stun/v3"
 	"github.com/pion/webrtc/v4"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 )
 
 type recordedProxyDial struct {

@@ -1,9 +1,8 @@
 package chat_completions
 
 import (
-	. "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/constant"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/interfaces"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/translator"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/translator/translator"
 )
 
 func init() {

@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginhost"
-	runtimeexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/runtime/executor"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginhost"
+	runtimeexecutor "github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
 type serviceTestPluginExecutor struct{}

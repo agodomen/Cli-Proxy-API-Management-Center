@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	homekv "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
+	homekv "github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"

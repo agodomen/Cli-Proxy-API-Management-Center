@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	gemresponses "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/gemini/openai/responses"
+	gemresponses "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/gemini/openai/responses"
 	"github.com/tidwall/gjson"
 )
 

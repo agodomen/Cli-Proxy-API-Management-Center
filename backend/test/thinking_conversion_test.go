@@ -5,21 +5,21 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/translator"
 
 	// Import provider packages to trigger init() registration of ProviderAppliers
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/antigravity"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/claude"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/codex"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/gemini"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/interactions"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/kimi"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/openai"
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking/provider/xai"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/antigravity"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/claude"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/codex"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/gemini"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/interactions"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/kimi"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/openai"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/thinking/provider/xai"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

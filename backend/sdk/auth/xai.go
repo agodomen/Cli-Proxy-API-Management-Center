@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	xaiauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/auth/xai"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/browser"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	xaiauth "github.com/router-for-me/CLIProxyAPI/v7/internal/auth/xai"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/browser"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -6,9 +6,9 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginhost"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginhost"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
 func TestBuilderBuildInjectsPluginHostScheduler(t *testing.T) {

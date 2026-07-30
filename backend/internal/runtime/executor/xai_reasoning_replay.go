@@ -6,11 +6,11 @@ import (
 	"encoding/hex"
 	"strings"
 
-	internalcache "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/cache"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/runtime/executor/helps"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/thinking"
-	cliproxyexecutor "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/executor"
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
+	internalcache "github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/runtime/executor/helps"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/thinking"
+	cliproxyexecutor "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/executor"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 )

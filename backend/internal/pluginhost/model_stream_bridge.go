@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
 )
 
 type modelStreamBridge struct {

@@ -13,12 +13,11 @@ import (
 	"net/http"
 	"sync"
 
-	. "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/constant"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/interfaces"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	responsesconverter "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/openai/openai/responses"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/api/handlers"
-	"github.com/gin-gonic/gin"
+	. "github.com/router-for-me/CLIProxyAPI/v7/internal/constant"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	responsesconverter "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/openai/openai/responses"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

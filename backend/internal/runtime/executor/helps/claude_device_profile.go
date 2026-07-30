@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	homekv "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	cliproxyauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	homekv "github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	cliproxyauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
 const (

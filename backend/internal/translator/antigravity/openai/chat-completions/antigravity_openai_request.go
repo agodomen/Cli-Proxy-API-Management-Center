@@ -5,10 +5,10 @@ package chat_completions
 import (
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/antigravity/gemini"
-	translatorcommon "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/common"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/gemini/common"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/translator/antigravity/gemini"
+	translatorcommon "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/common"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/translator/gemini/common"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"

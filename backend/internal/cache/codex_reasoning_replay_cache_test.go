@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	homekv "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
+	homekv "github.com/router-for-me/CLIProxyAPI/v7/internal/home"
 	"github.com/tidwall/gjson"
 )
 

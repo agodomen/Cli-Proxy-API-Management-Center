@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/htmlsanitize"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginhost"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/pluginstore"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	sdkconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/htmlsanitize"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginhost"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginstore"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -275,12 +275,12 @@ func (h *Handler) installPluginFromStore(c *gin.Context, goos, goarch string) {
 		}
 	}
 	log.WithFields(log.Fields{
-		"plugin_id":        id,
-		"source_id":        source.ID,
-		"mode":             mode,
-		"proxy_configured": strings.TrimSpace(proxyURL) != "",
-		"accelerator":      strings.TrimSpace(acceleratorBase) != "",
-		"store_auth_rules": len(storeAuth),
+		"plugin_id":          id,
+		"source_id":          source.ID,
+		"mode":               mode,
+		"proxy_configured":   strings.TrimSpace(proxyURL) != "",
+		"accelerator":        strings.TrimSpace(acceleratorBase) != "",
+		"store_auth_rules":   len(storeAuth),
 		"auth_rules_present": authMatched,
 	}).Info("plugin store install begin")
 	if !validatePluginStoreInstallSource(c, configs, sources, id, source.ID) {

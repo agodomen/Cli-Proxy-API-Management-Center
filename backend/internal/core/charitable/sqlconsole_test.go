@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/store"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/store"
 )
 
 func newTestConsoleHandler(t *testing.T) (http.Handler, *store.Store) {

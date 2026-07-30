@@ -25,10 +25,10 @@ import (
 	"github.com/klauspost/compress/zstd"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/buildinfo"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/home"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/interfaces"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/buildinfo"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/home"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/interfaces"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 )
 
 var requestLogID atomic.Uint64

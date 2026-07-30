@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/redisqueue"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/redisqueue"
 )
 
 type usageQueueRecord []byte

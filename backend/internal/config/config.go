@@ -13,8 +13,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
-	sdkpluginstore "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginstore"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
+	sdkpluginstore "github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginstore"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
@@ -974,7 +974,7 @@ func (cfg *Config) NormalizePluginProxy() {
 // Status is clamped to 0 (none), 1 (custom), 2 (system), or 3 (accelerator).
 func NormalizePluginProxyConfig(raw PluginProxyConfig) PluginProxyConfig {
 	out := PluginProxyConfig{
-		URL:       strings.TrimSpace(raw.URL),
+		URL:         strings.TrimSpace(raw.URL),
 		Accelerator: strings.TrimSpace(raw.Accelerator),
 	}
 	switch raw.Status {

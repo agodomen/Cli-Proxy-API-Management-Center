@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/pluginapi"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
 )
 
 func TestBuildExecutionPlansForExecuteRespectsRouteTavily(t *testing.T) {

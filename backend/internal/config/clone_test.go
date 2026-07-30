@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/registry"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/registry"
 	"gopkg.in/yaml.v3"
 )
 

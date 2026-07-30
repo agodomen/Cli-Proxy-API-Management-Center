@@ -1,3 +1,3 @@
-module github.com/agodomen/Cli-Proxy-API-Management-Center/backend/examples/plugin/response-normalizer/go
+module github.com/router-for-me/CLIProxyAPI/examples/plugin/response-normalizer/go
 
 go 1.26

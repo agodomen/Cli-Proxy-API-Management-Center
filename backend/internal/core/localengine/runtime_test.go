@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/yaml.v3"
 )

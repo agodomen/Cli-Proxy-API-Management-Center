@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	"github.com/tidwall/gjson"
 )
 

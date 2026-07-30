@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/store"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/store"
 )
 
 func TestNormalizeGatewayMode(t *testing.T) {

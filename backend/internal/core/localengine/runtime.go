@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/core/config"
-	cliproxy "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy"
-	cliproxyconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
+	cliproxy "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
+	cliproxyconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -258,7 +258,6 @@ func injectManagementSecretFromEnv(configPath string) (bool, error) {
 	}
 	return true, nil
 }
-
 
 // nestedScalarValue walks mapping nodes following keys and returns the final
 // scalar value, or "" if any key is missing / not a scalar.

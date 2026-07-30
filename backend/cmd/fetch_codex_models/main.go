@@ -29,13 +29,13 @@ import (
 	"strings"
 	"time"
 
-	codexauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/auth/codex"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/logging"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
-	sdkauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/auth"
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/proxyutil"
+	codexauth "github.com/router-for-me/CLIProxyAPI/v7/internal/auth/codex"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/logging"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
+	sdkauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/proxyutil"
 	log "github.com/sirupsen/logrus"
 )
 

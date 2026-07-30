@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
 	"github.com/gin-gonic/gin"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 )
 
 func TestGetPluginProxy(t *testing.T) {
@@ -156,7 +156,6 @@ func TestValidatePluginProxyURL(t *testing.T) {
 	}
 }
 
-
 func TestPutPluginProxyAcceleratorValidatesAndPersists(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -223,7 +222,6 @@ func TestPutPluginProxyAcceleratorValidatesAndPersists(t *testing.T) {
 	}
 }
 
-
 func TestValidatePluginProxyAcceleratorURL(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := &Handler{}
@@ -256,4 +254,3 @@ func TestValidatePluginProxyAcceleratorURL(t *testing.T) {
 		t.Fatalf("accelerator = %#v", payload["accelerator"])
 	}
 }
-

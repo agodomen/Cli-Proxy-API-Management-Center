@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	sdkaccess "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/access"
-	sdkconfig "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/config"
+	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
+	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
 
 // Register ensures the config-access provider is available to the access manager.

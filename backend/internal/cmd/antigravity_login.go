@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/config"
-	sdkAuth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/auth"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
+	sdkAuth "github.com/router-for-me/CLIProxyAPI/v7/sdk/auth"
 	log "github.com/sirupsen/logrus"
 )
 

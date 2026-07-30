@@ -5,9 +5,9 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/cache"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
-	translatorcommon "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/common"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
+	translatorcommon "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/common"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )

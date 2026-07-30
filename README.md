@@ -1,7 +1,7 @@
 <div align="center">
   <img src="doc/public/favicon.svg" width="96" height="96" alt="工具猿 / amonkey-tools" />
   <h1>工具猿（amonkey-tools）</h1>
-  <p><strong>CLIProxyAPI 可视化管理、兼容代理、请求监控与凭证高可用运维平台</strong></p>
+  <p><strong>CLIProxyAPI & CLI Proxy API Management Center的衍生项目，可视化管理、兼容代理、请求监控与凭证高可用运维平台</strong></p>
   <p><strong>A visual management, compatible proxy, request monitoring, and credential high-availability platform for CLIProxyAPI.</strong></p>
   <p>
     <a href="https://agodomen.github.io/Cli-Proxy-API-Management-Center/">在线文档 / Documentation</a>

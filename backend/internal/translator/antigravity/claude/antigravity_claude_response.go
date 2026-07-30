@@ -15,10 +15,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/cache"
-	sigcompat "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/signature"
-	translatorcommon "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator/common"
-	"github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/util"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/cache"
+	sigcompat "github.com/router-for-me/CLIProxyAPI/v7/internal/signature"
+	translatorcommon "github.com/router-for-me/CLIProxyAPI/v7/internal/translator/common"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/util"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/tidwall/gjson"

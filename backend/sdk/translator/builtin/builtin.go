@@ -2,9 +2,9 @@
 package builtin
 
 import (
-	sdktranslator "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/translator"
+	sdktranslator "github.com/router-for-me/CLIProxyAPI/v7/sdk/translator"
 
-	_ "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/internal/translator"
+	_ "github.com/router-for-me/CLIProxyAPI/v7/internal/translator"
 )
 
 // Registry exposes the default registry populated with all built-in translators.

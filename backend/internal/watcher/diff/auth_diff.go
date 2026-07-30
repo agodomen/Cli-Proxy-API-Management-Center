@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	coreauth "github.com/agodomen/Cli-Proxy-API-Management-Center/backend/sdk/cliproxy/auth"
+	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
 // BuildAuthChangeDetails computes a redacted, human-readable list of auth field changes.
