@@ -235,6 +235,10 @@ func (h *Handler) installPluginFromStore(c *gin.Context, goos, goarch string) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request", "message": errVersionRequest.Error()})
 		return
 	}
+	//// Plugin downloads can take longer than the browser request lifetime.
+	//// Ignore client disconnects and bound the detached install to ten minutes.
+	//installCtx, cancelInstall := context.WithTimeout(context.WithoutCancel(c.Request.Context()), 10*time.Minute)
+	//defer cancelInstall()
 	// Plugin downloads can take longer than the browser request lifetime.
 	// Keep any existing deadline from the request, but do not cancel just because
 	// the client disconnected mid-download.
@@ -260,29 +264,6 @@ func (h *Handler) installPluginFromStore(c *gin.Context, goos, goarch string) {
 	if !okPlugin {
 		return
 	}
-	mode := "direct"
-	switch {
-	case strings.TrimSpace(acceleratorBase) != "":
-		mode = "accelerator"
-	case strings.TrimSpace(proxyURL) != "":
-		mode = "proxy"
-	}
-	authMatched := false
-	for _, item := range storeAuth {
-		if strings.TrimSpace(item.Match) != "" {
-			authMatched = true
-			break
-		}
-	}
-	log.WithFields(log.Fields{
-		"plugin_id":          id,
-		"source_id":          source.ID,
-		"mode":               mode,
-		"proxy_configured":   strings.TrimSpace(proxyURL) != "",
-		"accelerator":        strings.TrimSpace(acceleratorBase) != "",
-		"store_auth_rules":   len(storeAuth),
-		"auth_rules_present": authMatched,
-	}).Info("plugin store install begin")
 	if !validatePluginStoreInstallSource(c, configs, sources, id, source.ID) {
 		return
 	}
@@ -320,21 +301,7 @@ func (h *Handler) installPluginFromStore(c *gin.Context, goos, goarch string) {
 			})
 			return
 		}
-		log.WithError(errInstall).WithFields(log.Fields{
-			"plugin_id":   id,
-			"source_id":   source.ID,
-			"mode":        mode,
-			"accelerator": strings.TrimSpace(acceleratorBase) != "",
-			"proxy":       strings.TrimSpace(proxyURL) != "",
-			"canceled":    errors.Is(errInstall, context.Canceled) || errors.Is(errInstall, context.DeadlineExceeded) || strings.Contains(errInstall.Error(), "context canceled") || strings.Contains(errInstall.Error(), "context deadline"),
-		}).Warn("plugin store install failed")
-		message := errInstall.Error()
-		if errors.Is(errInstall, context.Canceled) || strings.Contains(message, "context canceled") {
-			message = "plugin download was canceled before completion; retry the install and keep the page open, or use a faster proxy/accelerator"
-		} else if errors.Is(errInstall, context.DeadlineExceeded) || strings.Contains(message, "context deadline") {
-			message = "plugin download timed out; retry with a faster proxy/accelerator or check network connectivity"
-		}
-		c.JSON(http.StatusBadGateway, gin.H{"error": "plugin_install_failed", "message": message})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "plugin_install_failed", "message": errInstall.Error()})
 		return
 	}
 	if manifest.ID == "" {
@@ -585,8 +552,7 @@ func (h *Handler) newPluginStoreClient(proxyURL string, acceleratorBase string, 
 		return pluginstore.Client{HTTPClient: httpClient, RegistryURL: registryURL, AcceleratorBase: acceleratorBase, Auth: storeAuth}
 	}
 	client := &http.Client{
-		// No overall Timeout: large plugin zips over a proxy can exceed default limits.
-		// Request cancellation is controlled by the install context instead.
+		// Plugin downloads are bounded by the install context.
 		Timeout: 0,
 	}
 	if strings.TrimSpace(proxyURL) != "" {

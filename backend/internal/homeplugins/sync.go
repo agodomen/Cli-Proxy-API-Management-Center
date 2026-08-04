@@ -803,8 +803,8 @@ func yamlMappingValue(node *yaml.Node, key string) *yaml.Node {
 var newPluginStoreClient = func(cfg *config.Config) sdkpluginstore.Client {
 	client := &http.Client{}
 	var storeAuth []sdkpluginstore.AuthConfig
-	if proxyURL := config.EffectivePluginStoreProxyURL(cfg); proxyURL != "" {
-		util.SetProxy(&sdkconfig.SDKConfig{ProxyURL: proxyURL}, client)
+	if cfg != nil && strings.TrimSpace(cfg.ProxyURL) != "" {
+		util.SetProxy(&sdkconfig.SDKConfig{ProxyURL: strings.TrimSpace(cfg.ProxyURL)}, client)
 	}
 	if cfg != nil {
 		storeAuth = cfg.Plugins.StoreAuth
@@ -814,8 +814,8 @@ var newPluginStoreClient = func(cfg *config.Config) sdkpluginstore.Client {
 
 var newResolvedPluginStoreClient = func(cfg *config.Config, auth []sdkpluginstore.ResolvedAuthConfig, expiresAt time.Time) sdkpluginstore.Client {
 	client := &http.Client{}
-	if proxyURL := config.EffectivePluginStoreProxyURL(cfg); proxyURL != "" {
-		util.SetProxy(&sdkconfig.SDKConfig{ProxyURL: proxyURL}, client)
+	if cfg != nil && strings.TrimSpace(cfg.ProxyURL) != "" {
+		util.SetProxy(&sdkconfig.SDKConfig{ProxyURL: strings.TrimSpace(cfg.ProxyURL)}, client)
 	}
 	return sdkpluginstore.NewClientWithResolvedAuthExpiry(client, "", auth, expiresAt)
 }

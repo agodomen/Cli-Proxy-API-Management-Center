@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestNormalizePluginProxyConfig(t *testing.T) {
 	t.Parallel()
@@ -51,6 +55,38 @@ func TestNormalizePluginProxyConfig(t *testing.T) {
 				t.Fatalf("NormalizePluginProxyConfig() = %#v, want %#v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestLoadConfigNormalizesPluginProxy(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.yaml")
+	data := []byte("plugin-proxy:\n  url: ' socks5://127.0.0.1:1080 '\n  accelerator: ' https://gh-proxy.com '\n  status: 9\n")
+	if errWrite := os.WriteFile(configPath, data, 0o600); errWrite != nil {
+		t.Fatalf("WriteFile() error = %v", errWrite)
+	}
+
+	cfg, errLoad := LoadConfig(configPath)
+	if errLoad != nil {
+		t.Fatalf("LoadConfig() error = %v", errLoad)
+	}
+	want := PluginProxyConfig{
+		URL:         "socks5://127.0.0.1:1080",
+		Accelerator: "https://gh-proxy.com",
+		Status:      PluginProxyStatusNone,
+	}
+	if cfg.PluginProxy != want {
+		t.Fatalf("PluginProxy = %#v, want %#v", cfg.PluginProxy, want)
+	}
+}
+
+func TestParseConfigBytesNormalizesPluginProxy(t *testing.T) {
+	cfg, errParse := ParseConfigBytes([]byte("plugin-proxy:\n  url: ' socks5://127.0.0.1:1080 '\n  status: 1\n"))
+	if errParse != nil {
+		t.Fatalf("ParseConfigBytes() error = %v", errParse)
+	}
+	want := PluginProxyConfig{URL: "socks5://127.0.0.1:1080", Status: PluginProxyStatusCustom}
+	if cfg.PluginProxy != want {
+		t.Fatalf("PluginProxy = %#v, want %#v", cfg.PluginProxy, want)
 	}
 }
 

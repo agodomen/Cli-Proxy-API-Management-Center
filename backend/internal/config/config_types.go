@@ -629,3 +629,37 @@ func (m OpenAICompatibilityModel) GetDisplayName() string { return m.DisplayName
 func (m OpenAICompatibilityModel) GetForceMapping() bool { return m.ForceMapping }
 
 func (m OpenAICompatibilityModel) GetThinking() *registry.ThinkingSupport { return m.Thinking }
+
+// PluginProxyConfig is the dedicated outbound proxy/accelerator for plugin-store traffic.
+// It is independent from the global proxy-url used by OAuth/providers/API calls.
+//
+// Status:
+//   - 0 (none): no proxy for plugin-store
+//   - 1 (custom): use PluginProxy.URL as socks/http/https proxy
+//   - 2 (system): reuse config.yaml proxy-url
+//   - 3 (accelerator): rewrite GitHub resource URLs as prefix + original URL
+//
+// URL keeps the last user-provided custom/accelerator value so re-enabling
+// either mode does not lose input.
+type PluginProxyConfig struct {
+	// URL is the last custom proxy URL (traditional proxy only).
+	// Accelerator uses a separate field.
+	URL string `yaml:"url,omitempty" json:"url"`
+	// Accelerator is the web accelerator base used when status=3.
+	// Example: https://gh-proxy.com
+	Accelerator string `yaml:"accelerator,omitempty" json:"accelerator"`
+	// Status is 0=none, 1=custom, 2=system, 3=accelerator.
+	Status int `yaml:"status,omitempty" json:"status"`
+}
+
+// Plugin-proxy status values (selection is encoded by status only).
+const (
+	// PluginProxyStatusNone means no dedicated proxy for plugin-store traffic.
+	PluginProxyStatusNone = 0
+	// PluginProxyStatusCustom means use PluginProxy.URL as a traditional outbound proxy.
+	PluginProxyStatusCustom = 1
+	// PluginProxyStatusSystem means reuse the global proxy-url.
+	PluginProxyStatusSystem = 2
+	// PluginProxyStatusAccelerator means rewrite GitHub resource URLs with PluginProxy.URL as a web accelerator prefix.
+	PluginProxyStatusAccelerator = 3
+)

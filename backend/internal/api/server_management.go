@@ -65,11 +65,10 @@ func (s *Server) registerManagementRoutes() {
 		mgmt.PATCH("/proxy-url", s.mgmt.PutProxyURL)
 		mgmt.DELETE("/proxy-url", s.mgmt.DeleteProxyURL)
 
-		mgmt.GET("/plugin-proxy", s.mgmt.GetPluginProxyURL)
-		mgmt.PUT("/plugin-proxy", s.mgmt.PutPluginProxyURL)
-		mgmt.PATCH("/plugin-proxy", s.mgmt.PutPluginProxyURL)
-		mgmt.DELETE("/plugin-proxy", s.mgmt.DeletePluginProxyURL)
-		mgmt.Any("/plugin-proxy/*path", s.mgmt.PluginProxy)
+		mgmt.GET("/plugin-proxy", s.mgmt.GetPluginProxy)
+		mgmt.PUT("/plugin-proxy", s.mgmt.PutPluginProxy)
+		mgmt.PATCH("/plugin-proxy", s.mgmt.PutPluginProxy)
+		mgmt.POST("/plugin-proxy/validate", s.mgmt.ValidatePluginProxyURL)
 
 		mgmt.POST("/api-call", s.mgmt.APICall)
 

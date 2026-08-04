@@ -13,22 +13,22 @@ import (
 // files. GitHub REST API (api.github.com) is excluded to avoid shared-IP rate
 // limits that break release metadata lookups during install.
 var githubAcceleratorHosts = map[string]struct{}{
-	"github.com":             {},
-	"www.github.com":         {},
-	"raw.githubusercontent.com": {},
-	"gist.github.com":        {},
-	"gist.githubusercontent.com": {},
-	"codeload.github.com":    {},
-	"objects.githubusercontent.com": {},
-	"media.githubusercontent.com": {},
-	"cloud.githubusercontent.com": {},
-	"camo.githubusercontent.com": {},
-	"user-images.githubusercontent.com": {},
+	"github.com":                                {},
+	"www.github.com":                            {},
+	"raw.githubusercontent.com":                 {},
+	"gist.github.com":                           {},
+	"gist.githubusercontent.com":                {},
+	"codeload.github.com":                       {},
+	"objects.githubusercontent.com":             {},
+	"media.githubusercontent.com":               {},
+	"cloud.githubusercontent.com":               {},
+	"camo.githubusercontent.com":                {},
+	"user-images.githubusercontent.com":         {},
 	"private-user-images.githubusercontent.com": {},
-	"release-assets.githubusercontent.com": {},
-	"github-releases.githubusercontent.com": {},
-	"github-cloud.githubusercontent.com": {},
-	"github.githubassets.com": {},
+	"release-assets.githubusercontent.com":      {},
+	"github-releases.githubusercontent.com":     {},
+	"github-cloud.githubusercontent.com":        {},
+	"github.githubassets.com":                   {},
 }
 
 // NormalizeAcceleratorBase validates and normalizes a web accelerator base URL.

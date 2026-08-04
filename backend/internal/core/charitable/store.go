@@ -1,6 +1,7 @@
 package charitable
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"database/sql"
@@ -64,6 +65,83 @@ type AuthDetail struct {
 	// Compatibility fields for existing Keys UI / API clients.
 	APIKey  string `json:"api_key,omitempty"`
 	APIType int    `json:"api_type,omitempty"`
+}
+
+func (detail *AuthDetail) UnmarshalJSON(data []byte) error {
+	type authDetailAlias AuthDetail
+	payload := struct {
+		*authDetailAlias
+		AuthInfo json.RawMessage `json:"auth_info"`
+		OwnerID  json.RawMessage `json:"owner_id"`
+	}{
+		authDetailAlias: (*authDetailAlias)(detail),
+	}
+
+	*detail = AuthDetail{}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return err
+	}
+
+	authInfo, err := decodeJSONStringOrObject(payload.AuthInfo)
+	if err != nil {
+		return fmt.Errorf("decode auth_info: %w", err)
+	}
+	detail.AuthInfo = authInfo
+
+	ownerID, err := decodeOptionalInt64(payload.OwnerID)
+	if err != nil {
+		return fmt.Errorf("decode owner_id: %w", err)
+	}
+	detail.OwnerID = ownerID
+	return nil
+}
+
+func decodeJSONStringOrObject(raw json.RawMessage) (string, error) {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" || trimmed == "null" {
+		return "", nil
+	}
+	if strings.HasPrefix(trimmed, `"`) {
+		var value string
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return "", err
+		}
+		return value, nil
+	}
+	if !strings.HasPrefix(trimmed, "{") {
+		return "", errors.New("must be a JSON string or object")
+	}
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &object); err != nil {
+		return "", err
+	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, raw); err != nil {
+		return "", err
+	}
+	return compact.String(), nil
+}
+
+func decodeOptionalInt64(raw json.RawMessage) (*int64, error) {
+	trimmed := strings.TrimSpace(string(raw))
+	if trimmed == "" || trimmed == "null" {
+		return nil, nil
+	}
+	if strings.HasPrefix(trimmed, `"`) {
+		var value string
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return nil, err
+		}
+		trimmed = strings.TrimSpace(value)
+		if trimmed == "" {
+			return nil, nil
+		}
+	}
+	value, err := strconv.ParseInt(trimmed, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return &value, nil
 }
 
 // APIKey is retained as an alias type name for gradual migration.

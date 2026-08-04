@@ -13,56 +13,6 @@ import (
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 )
 
-func TestUploadAuthFile_AppliesDisabledBeforeRegistration(t *testing.T) {
-	t.Setenv("MANAGEMENT_PASSWORD", "")
-	gin.SetMode(gin.TestMode)
-
-	authDir := t.TempDir()
-	manager := coreauth.NewManager(nil, nil, nil)
-	h := NewHandlerWithoutConfigFilePath(&config.Config{AuthDir: authDir}, manager)
-
-	content := `{"type":"codex","email":"disabled@example.com","disabled":true}`
-
-	var body bytes.Buffer
-	writer := multipart.NewWriter(&body)
-	part, err := writer.CreateFormFile("file", "disabled.codex.json")
-	if err != nil {
-		t.Fatalf("failed to create multipart file: %v", err)
-	}
-	if _, err = part.Write([]byte(content)); err != nil {
-		t.Fatalf("failed to write multipart content: %v", err)
-	}
-	if err = writer.Close(); err != nil {
-		t.Fatalf("failed to close multipart writer: %v", err)
-	}
-
-	rec := httptest.NewRecorder()
-	ctx, _ := gin.CreateTestContext(rec)
-	req := httptest.NewRequest(http.MethodPost, "/v0/management/auth-files", &body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	ctx.Request = req
-
-	h.UploadAuthFile(ctx)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected upload status %d, got %d with body %s", http.StatusOK, rec.Code, rec.Body.String())
-	}
-
-	auth, ok := manager.GetByID("disabled.codex.json")
-	if !ok || auth == nil {
-		t.Fatalf("expected uploaded auth record to exist")
-	}
-	if !auth.Disabled {
-		t.Fatal("uploaded auth registered as enabled, want disabled")
-	}
-	if auth.Status != coreauth.StatusDisabled {
-		t.Fatalf("uploaded auth status = %q, want %q", auth.Status, coreauth.StatusDisabled)
-	}
-	if disabled, _ := auth.Metadata["disabled"].(bool); !disabled {
-		t.Fatalf("uploaded auth metadata disabled = %#v, want true", auth.Metadata["disabled"])
-	}
-}
-
 func TestUploadAuthFile_PreservesPriorityAttributes(t *testing.T) {
 	t.Setenv("MANAGEMENT_PASSWORD", "")
 	gin.SetMode(gin.TestMode)

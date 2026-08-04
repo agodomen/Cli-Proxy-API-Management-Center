@@ -307,6 +307,57 @@ func TestHandlerKeyQueryAndUpsert(t *testing.T) {
 	}
 }
 
+func TestHandlerKeyUpsertAcceptsUserscriptPayload(t *testing.T) {
+	handler := newTestHandler(t)
+	body := `{
+		"auth_index":"f5655cbf5f1eb709edd02d574d9849cb",
+		"auth_value":"tp-ctkn5k7zue63ky6shd5qorgrir1e2zqil4cz2f8asr7pmqq7",
+		"auth_info":{
+			"url":"https://linux.do/t/topic/2694328",
+			"topic_id":"2694328",
+			"username":"ppchang",
+			"title":"mimo token",
+			"base_url":"",
+			"path":"",
+			"schema_version":1,
+			"credential_type":"api_key",
+			"api_type":1,
+			"provider_name":"Mimo",
+			"provider_url":"https://token-plan-cn.xiaomimimo.com"
+		},
+		"owner_id":"448666",
+		"status":1,
+		"priority":0,
+		"content":"shared token",
+		"title":"mimo token",
+		"remark":"https://linux.do/t/topic/2694328"
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(body))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("userscript upsert status = %d, body = %s", rr.Code, rr.Body.String())
+	}
+
+	var response struct {
+		Item APIKey `json:"item"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode userscript upsert response: %v", err)
+	}
+	if response.Item.OwnerID == nil || *response.Item.OwnerID != 448666 {
+		t.Fatalf("owner_id = %v, want 448666", response.Item.OwnerID)
+	}
+	var authInfo map[string]any
+	if err := json.Unmarshal([]byte(response.Item.AuthInfo), &authInfo); err != nil {
+		t.Fatalf("auth_info is not stored as JSON text: %v", err)
+	}
+	if authInfo["provider_name"] != "Mimo" || authInfo["topic_id"] != "2694328" {
+		t.Fatalf("unexpected auth_info: %v", authInfo)
+	}
+}
+
 func TestHandlerProxyQueryAndUpsert(t *testing.T) {
 	handler := newTestHandler(t)
 	proxyValue := "socks5://user:password@example.com:1080"

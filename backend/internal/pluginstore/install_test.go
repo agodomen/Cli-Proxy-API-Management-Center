@@ -358,7 +358,6 @@ func TestInstallUsesLatestReleaseVersion(t *testing.T) {
 	}
 }
 
-
 func TestDownloadAssetFollowsGitHubRedirectWithTokenQuery(t *testing.T) {
 	artifact := []byte("artifact-data")
 	cdn := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -477,12 +476,12 @@ func TestFetchLatestReleaseDoesNotUseAcceleratorForAPI(t *testing.T) {
 	}
 	client := Client{HTTPClient: doer, AcceleratorBase: accelBase}
 	release, err := client.FetchLatestRelease(context.Background(), Plugin{
-		ID:         "sample",
-		Name:       "Sample",
+		ID:          "sample",
+		Name:        "Sample",
 		Description: "d",
-		Author:     "owner",
-		Repository: "https://github.com/owner/repo",
-		Install:    InstallPlan{Type: InstallTypeGitHubRelease},
+		Author:      "owner",
+		Repository:  "https://github.com/owner/repo",
+		Install:     InstallPlan{Type: InstallTypeGitHubRelease},
 	})
 	if err != nil {
 		t.Fatalf("FetchLatestRelease() error = %v; seen=%v", err, seen)
