@@ -32,7 +32,7 @@ features:
 
 ## 文档约定
 
-`doc/` 是项目唯一的正式文档目录。根目录仅保留 `README.md`、`README_CN.md`、`LICENSE` 和 `AGENTS.md` 等仓库入口文件；测试凭证、二进制和临时材料不会发布到文档站点。
+`/` 是项目唯一的正式文档目录。根目录仅保留 `README.md`、`README_CN.md`、`LICENSE` 和 `AGENTS.md` 等仓库入口文件；测试凭证、二进制和临时材料不会发布到文档站点。
 
 ## 快速入口
 

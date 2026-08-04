@@ -16,7 +16,7 @@ CLIProxyAPI 已经成为当前项目 Go 服务的原生核心代码，不再作�
 - Go 版本：1.26
 - 上游许可证：MIT，见 `LICENSE.CLIProxyAPI`
 
-精确来源记录在 `backend/.cliproxyapi-upstream-ref`（成功同步后更新；规范见 `doc/architecture/community-sync.md`）。
+精确来源记录在 `backend/.cliproxyapi-upstream-ref`（成功同步后更新；规范见 `../docs/architecture/community-sync.md`）。
 
 
 ### 2026-07-27 同步记录

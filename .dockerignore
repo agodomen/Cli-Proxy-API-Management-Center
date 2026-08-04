@@ -8,7 +8,7 @@ dist
 .codegraph
 .idea
 .devcontainer
-doc
+docs
 doc.local
 .DS_Store
 Thumbs.db

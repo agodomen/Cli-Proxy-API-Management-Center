@@ -149,7 +149,7 @@ Level 2 钩子（同步后复查；以下均为迁移后权威路径）：
 | `test/**` / `examples/**` | `backend/test/**`、`backend/examples/**` | 镜像 |
 | `go.mod` / `go.sum` / `config.example.yaml` | `backend/` | 镜像 + 追加本地依赖；module 保持 `.../backend` |
 | `assets/**` | `backend/assets/**` | 按需同步 |
-| 上游 `docs/` | — | 不替代本仓 `doc/`；仅参考 |
+| 上游 `docs/` | — | 不替代本仓 `../`；仅参考 |
 | 上游 Docker/compose/Dockerfile | — | 不替代 `.devcontainer/`（统一 Dockerfile + compose 画像） |
 | 上游 `AGENTS.md` / `README*` / `.github/` | — | 不占领 monorepo 根；仅参考/按需移植 job |
 | 上游 `auths/`、运行时敏感目录 | — | 通常不进主跟踪；本地夹具只用 `doc.local/` |
@@ -167,7 +167,7 @@ Level 2 钩子（同步后复查；以下均为迁移后权威路径）：
 这些路径不是上游整树的简单镜像：
 
 - 根 `AGENTS.md`
-- `doc/`（VitePress 正式文档）
+- `../`（VitePress 正式文档）
 - `.devcontainer/`（统一 `Dockerfile` + `start.sh` 默认 dev + 多 compose 画像）
 - `build.sh`
 - 本地 `.github/workflows/`

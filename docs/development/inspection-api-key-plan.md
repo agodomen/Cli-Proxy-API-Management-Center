@@ -220,7 +220,7 @@ baseUrl?: string;
 
 ### Phase 1（本轮）
 
-1. 文档（本文件）+ 更新 `doc/services/operations/inspection.md`
+1. 文档（本文件）+ 更新 `../services/operations/inspection.md`
 2. `codexInspection.ts`
    - settings：`accountSource` / `apiKeyFamily`
    - `isApiKeyInspectionAccount` / family 匹配
@@ -264,7 +264,7 @@ baseUrl?: string;
 
 若任务中断，从下列步骤继续：
 
-- [x] 文档是否已提交到 `doc/development/inspection-api-key-plan.md`
+- [x] 文档是否已提交到 `../development/inspection-api-key-plan.md`
 - [x] settings 是否已含 `accountSource`（targetType 在 api_key 源下承载 family）
 - [x] 枚举过滤是否只在 api_key 源命中 runtime 凭证
 - [x] `probeApiKeyAccount` 是否存在并在 switch 中调用

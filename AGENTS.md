@@ -16,14 +16,14 @@ This project (`Cli-Proxy-API-Management-Center`) is a management panel for CPA (
 - `frontend/src/external/` = local frontend secondary-development zone
 - `backend/` = whole backend Go module root (`go.mod`, `cmd/`, `internal/`, `sdk/`, …)
 - `backend/internal/core/` and `backend/cmd/cpamc/` = local backend secondary-development zones
-- Monorepo root keeps synthesis control-plane only: `AGENTS.md`, `doc/`, `.devcontainer/`, `build.sh`, local CI；各上游 pin 放在对应挂载点内
+- Monorepo root keeps synthesis control-plane only: `AGENTS.md`, `docs/`, `.devcontainer/`, `build.sh`, local CI；各上游 pin 放在对应挂载点内
 
 **Architecture Principle**:
 - **"External" Isolation (Frontend)**: All CPA-specific frontend features live in `frontend/src/external/`. This subsystem is injected via a single `import '@/external/cpa-extension'` in `frontend/src/main.tsx`. It does not modify community Center components beyond Level 2 hooks.
 - **"Core" Isolation (Backend)**: All non-community backend business lives in `backend/internal/core/`. Community CLIProxyAPI code remains under `backend/internal/*` (except `core/`) and `backend/sdk/`; do not mix secondary-dev logic into community packages.
 - **Minimal Invasiveness**: Prefer not changing community frontend files or community backend packages mirrored from CLIProxyAPI, so upstream maintenance stays easy.
 - **Dual-Upstream Mount Model**: Mirror each upstream's implementation/project tree into its mount point; never let upstream README/AGENTS/Docker/CI/docs take over the monorepo root control plane.
-- **Community Sync One-liner**: 本仓是双上游合成 monorepo——前端整树挂 `frontend/`、后端整树挂 `backend/`；二开只在 external 与 core/cpamc；同步时优先复用已准备的上游 clone，否则 `/tmp` 只读准备；按 tag 选版本、以 commit 钉基线；**验证成功后再改** `*-upstream-ref`；保护二开与控制面并回归验证。完整规范见 [`doc/architecture/community-sync.md`](doc/architecture/community-sync.md)。
+- **Community Sync One-liner**: 本仓是双上游合成 monorepo——前端整树挂 `frontend/`、后端整树挂 `backend/`；二开只在 external 与 core/cpamc；同步时优先复用已准备的上游 clone，否则 `/tmp` 只读准备；按 tag 选版本、以 commit 钉基线；**验证成功后再改** `*-upstream-ref`；保护二开与控制面并回归验证。完整规范见 [`docs/architecture/community-sync.md`](docs/architecture/community-sync.md)。
 
 ---
 
@@ -44,7 +44,7 @@ Below is the modification permission for each part of the codebase. These levels
 | `bin/` | 发布/打包脚本 |
 | `.devcontainer/` | Docker 开发环境：统一 `Dockerfile` + `start.sh`（默认 dev）；`docker-compose*.yml` 区分运行画像 |
 | `.dockerignore` | Docker 忽略规则 |
-| `doc/` | 项目全部正式文档、VitePress 配置和文档站点资源 |
+| `docs/` | 项目全部正式文档、VitePress 配置和文档站点资源 |
 | `build.sh` | 前端、Go 服务和 VitePress 文档统一构建入口 |
 | `.github/workflows/` | 本地 CI / 文档部署工作流 |
 | `AGENTS.md` | 本文件 |
@@ -53,7 +53,7 @@ Below is the modification permission for each part of the codebase. These levels
 
 **原则**：`frontend/src/external/` 与 `backend/internal/core/` 是 agent 的主战场，可以自由组织结构、重构、新增、删除。社区 CLIProxyAPI 镜像代码（`backend/sdk/`、`backend/internal/*` 除 `core/`、`backend/cmd/server` 等）仅在必要时做最小改动。
 
-**文档原则**：`doc/` 是唯一正式文档材料目录。除根目录的 `doc/README.md`、`doc/README_CN.md`、`LICENSE`、`AGENTS.md` 等仓库入口文件外，架构、设计、数据库、开发记录、历史方案和运维说明必须放入 `doc/`。`doc.local/` 只允许保留不会发布的本地测试资产或临时数据，不得新增正式 Markdown 文档，也不得将令牌、认证文件或二进制测试材料发布到 VitePress。
+**文档原则**：`docs/` 是唯一正式文档材料目录。除根目录的 `docs/README.md`、`docs/README_CN.md`、`LICENSE`、`AGENTS.md` 等仓库入口文件外，架构、设计、数据库、开发记录、历史方案和运维说明必须放入 `docs/`。`doc.local/` 只允许保留不会发布的本地测试资产或临时数据，不得新增正式 Markdown 文档，也不得将令牌、认证文件或二进制测试材料发布到 VitePress。
 
 ---
 
@@ -109,10 +109,10 @@ Below is the modification permission for each part of the codebase. These levels
 
 ## 3. Integration Strategy
 
-### 3.0. Documentation (`doc/`)
-- `doc/` is the canonical source for all project documentation.
-- VitePress entry: `doc/index.md`; configuration: `doc/.vitepress/config.mts`.
-- Documentation dependencies are isolated in `doc/package.json`.
+### 3.0. Documentation (`docs/`)
+- `docs/` is the canonical source for all project documentation.
+- VitePress entry: `docs/index.md`; configuration: `docs/.vitepress/config.mts`.
+- Documentation dependencies are isolated in `docs/package.json`.
 - Use `./build.sh docs` to build and `./build.sh docs:dev` to serve locally.
 - GitHub Pages is built by `.github/workflows/docs.yml`.
 - Organize new documents by domain: `architecture/`, `charitable/`, `sqlite/`, `development/`, `history/`, or `archive/`.
@@ -185,7 +185,7 @@ Plugin-store list/install uses a dedicated outbound proxy/accelerator independen
 - **Pin 更新时机**：合并开始前**只读** pin；代码移植且验证**成功后**才覆盖写入新 `commit`/`tag`。失败或中止则**不改** pin。禁止先改 pin 再合并。
 - **Pin 格式**：规范为 key=value（`branch=main`、`commit`、`tag`）。现有纯文本两行或后端 `ref=` 读取时兼容；下次成功同步再写成规范格式。
 - **版本选择**：优先按上游 **tag** 选定目标；pin 记录 **tag + commit**（`commit` 为唯一权威，`branch=main` 仅为跟踪线元数据）。
-- **上游代码来源**：若上下文/环境已有准备好的上游 git 仓则直接复用并 `fetch --tags`（快）；否则在 `/tmp`（或 `mktemp -d`）只读准备目标 tag 树。细节见 [`doc/architecture/community-sync.md`](doc/architecture/community-sync.md) §5.3 / §6。
+- **上游代码来源**：若上下文/环境已有准备好的上游 git 仓则直接复用并 `fetch --tags`（快）；否则在 `/tmp`（或 `mktemp -d`）只读准备目标 tag 树。细节见 [`docs/architecture/community-sync.md`](docs/architecture/community-sync.md) §5.3 / §6。
 - Sync community frontend pages/features/components/services/stores/i18n/styles/assets into the corresponding non-`frontend/src/external/` trees under `frontend/`.
 - Keep secondary-development interaction only in `frontend/src/external/`. After a community overlay, re-apply only the Level 2 integration hooks:
   - `frontend/src/main.tsx` → `import '@/external/cpa-extension'`
@@ -208,7 +208,7 @@ Plugin-store list/install uses a dedicated outbound proxy/accelerator independen
 - **上游代码来源**：优先上下文/环境中的现成 CLIProxyAPI clone（如 `CLIPROXYAPI_SOURCE`），否则 `/tmp` 只读准备；用 `bin/compare-cliproxyapi.sh` 对比后人工移植。
 - Never overwrite `backend/internal/core/` or `backend/cmd/cpamc/`（以及 pin 本身）。
 - Keep intentional local compatibility patches inventory-driven (auth file safety/index compatibility, OpenAI-compat single-key disable, disabled metadata compatibility, plugin-proxy, sqlite dependency, localengine wiring).
-- Full procedure: [`doc/architecture/community-sync.md`](doc/architecture/community-sync.md).
+- Full procedure: [`docs/architecture/community-sync.md`](docs/architecture/community-sync.md).
 
 ## 4. Agent Execution Directives
 
@@ -218,8 +218,8 @@ Plugin-store list/install uses a dedicated outbound proxy/accelerator independen
 4. **Reuse Existing Assets**: Always look for existing icons, utilities, hooks, and UI components in `frontend/src/components/ui/` and `frontend/src/external/components/ui/` before creating new ones.
 5. **Consider Upstream Commit Compatibility**: When modifying Level 2 files, review recent community commits via `git log` / `git blame` to understand recent evolution patterns and avoid conflicts.
 6. **Own Changes Are Flexible**: You may freely add, modify, or remove your own previous additions in `frontend/src/external/` and Level 2 files — this is normal integration iteration, not a violation.
-7. **Documentation Is Part of Delivery**: Architecture, schema, migration, deployment, and operational behavior changes must update the corresponding page under `doc/`; do not add new formal documents under `doc.local/`.
-8. **Follow Community Sync Policy**: When merging upstream frontend/backend community code, follow the one-liner in §1 and the full procedure in `doc/architecture/community-sync.md`. Do not invent a one-off overlay strategy.
+7. **Documentation Is Part of Delivery**: Architecture, schema, migration, deployment, and operational behavior changes must update the corresponding page under `docs/`; do not add new formal documents under `doc.local/`.
+8. **Follow Community Sync Policy**: When merging upstream frontend/backend community code, follow the one-liner in §1 and the full procedure in `docs/architecture/community-sync.md`. Do not invent a one-off overlay strategy.
 9. **Upstream source & pin order**: Prefer an already-prepared upstream git checkout from context/env; only if absent, prepare a read-only tree under `/tmp`. Read `*-upstream-ref` before work; update it **only after** a successful merge and verification—never bump the pin first.
 
 ---
@@ -311,5 +311,5 @@ Cli-Proxy-API-Management-Center/
 
 路径与同步细则：
 
-- [`doc/architecture/community-sync.md`](doc/architecture/community-sync.md)
-- [`doc/architecture/monorepo-migration-plan.md`](doc/architecture/monorepo-migration-plan.md)
+- [`docs/architecture/community-sync.md`](docs/architecture/community-sync.md)
+- [`docs/architecture/monorepo-migration-plan.md`](docs/architecture/monorepo-migration-plan.md)

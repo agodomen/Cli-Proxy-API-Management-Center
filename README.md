@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="doc/public/favicon.svg" width="96" height="96" alt="工具猿 / amonkey-tools" />
+  <img src="docs/public/favicon.svg" width="96" height="96" alt="工具猿 / amonkey-tools" />
   <h1>工具猿（amonkey-tools）</h1>
   <p><strong>CLIProxyAPI & CLI Proxy API Management Center的衍生项目，可视化管理、兼容代理、请求监控与凭证高可用运维平台</strong></p>
   <p><strong>A visual management, compatible proxy, request monitoring, and credential high-availability platform for CLIProxyAPI.</strong></p>
@@ -242,9 +242,9 @@ The management service supports both `config.json` and environment variables, wi
 | `CPAMC_LOCAL_ENGINE_HOST` | `0.0.0.0` | 内置引擎监听地址 |
 | `CPAMC_LOCAL_ENGINE_PORT` | `18318` | 内置引擎监听端口 |
 
-完整配置说明请查看[双引擎架构文档](doc/architecture/cliproxyapi-dual-engine.md)和[在线文档](https://agodomen.github.io/Cli-Proxy-API-Management-Center/)。
+完整配置说明请查看[双引擎架构文档](docs/architecture/cliproxyapi-dual-engine.md)和[在线文档](https://agodomen.github.io/Cli-Proxy-API-Management-Center/)。
 
-See the [dual-engine architecture document](doc/architecture/cliproxyapi-dual-engine.md) and the [online documentation](https://agodomen.github.io/Cli-Proxy-API-Management-Center/) for more details.
+See the [dual-engine architecture document](docs/architecture/cliproxyapi-dual-engine.md) and the [online documentation](https://agodomen.github.io/Cli-Proxy-API-Management-Center/) for more details.
 
 ## 构建与验证（Build and Verification）
 
@@ -328,17 +328,17 @@ The initial integration baseline is recorded in `backend/.cliproxyapi-upstream-r
 ## 文档（Documentation）
 
 - [在线文档 / Online Documentation](https://agodomen.github.io/Cli-Proxy-API-Management-Center/)
-- [背景现状 / Background](doc/background/index.md)
-- [功能服务 / Feature Services](doc/services/index.md)
-- [架构设计 / Architecture](doc/architecture/index.md)
-- [数据模型 / Data Model](doc/sqlite/index.md)
-- [开发记录 / Development Records](doc/development/index.md)
-- [里程碑 / Milestones](doc/milestones/index.md)
-- [归档文档 / Archive](doc/archive/index.md)
+- [背景现状 / Background](docs/background/index.md)
+- [功能服务 / Feature Services](docs/services/index.md)
+- [架构设计 / Architecture](docs/architecture/index.md)
+- [数据模型 / Data Model](docs/sqlite/index.md)
+- [开发记录 / Development Records](docs/development/index.md)
+- [里程碑 / Milestones](docs/milestones/index.md)
+- [归档文档 / Archive](docs/archive/index.md)
 
-`doc/` 是项目唯一的正式文档目录。`doc.local/` 用于本地设计材料，不参与公开文档站发布。
+`docs/` 是项目唯一的正式文档目录。`doc.local/` 用于本地设计材料，不参与公开文档站发布。
 
-`doc/` is the only canonical documentation directory. `doc.local/` contains local design materials and is not published to the public documentation site.
+`docs/` is the only canonical documentation directory. `doc.local/` contains local design materials and is not published to the public documentation site.
 
 ## 安全说明（Security）
 
@@ -359,9 +359,9 @@ The initial integration baseline is recorded in `backend/.cliproxyapi-upstream-r
 
 Issues and pull requests are welcome. Please include the context, reproduction steps, expected behavior, related versions, UI screenshots or API examples, and the validation commands you have run.
 
-新增 CPA 扩展功能应优先放在 `frontend/src/external/` 或 `backend/internal/core/`，并同步更新 `doc/`。修改社区前端目录前请先阅读 [AGENTS.md](AGENTS.md) 中的权限边界。
+新增 CPA 扩展功能应优先放在 `frontend/src/external/` 或 `backend/internal/core/`，并同步更新 `docs/`。修改社区前端目录前请先阅读 [AGENTS.md](AGENTS.md) 中的权限边界。
 
-New CPA extension features should preferably live in `frontend/src/external/` or `backend/internal/core/`, with corresponding updates under `doc/`. Read the permission boundaries in [AGENTS.md](AGENTS.md) before modifying community frontend directories.
+New CPA extension features should preferably live in `frontend/src/external/` or `backend/internal/core/`, with corresponding updates under `docs/`. Read the permission boundaries in [AGENTS.md](AGENTS.md) before modifying community frontend directories.
 
 ## 相关项目（Related Projects）
 

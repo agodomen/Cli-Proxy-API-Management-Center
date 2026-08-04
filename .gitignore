@@ -22,9 +22,9 @@ frontend/node_modules
 dist
 frontend/dist
 dist-ssr
-doc/node_modules
-doc/.vitepress/cache
-doc/.vitepress/dist
+docs/node_modules
+docs/.vitepress/cache
+docs/.vitepress/dist
 *.local
 skills
 

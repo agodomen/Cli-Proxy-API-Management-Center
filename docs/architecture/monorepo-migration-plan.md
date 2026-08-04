@@ -78,14 +78,14 @@ doc/ .devcontainer/ build.sh AGENTS.md  ← 合成控制面
 | `services/.cliproxyapi-upstream-ref` | `backend/.cliproxyapi-upstream-ref` | 随目录迁移 |
 | `services/CLIPROXYAPI_UPSTREAM_CN.md` | `backend/CLIPROXYAPI_UPSTREAM_CN.md` | 随目录迁移 |
 | `.frontend-upstream-ref` | `frontend/.frontend-upstream-ref` | 与 `backend/.cliproxyapi-upstream-ref` 对称；挂载点内本地 pin |
-| `doc/` / `.devcontainer/` / `build.sh` / `AGENTS.md` | 仍留仓库根 | 更新内部路径 |
+| `../` / `.devcontainer/` / `build.sh` / `AGENTS.md` | 仍留仓库根 | 更新内部路径 |
 
 ### 保护目录（迁移中禁止覆盖/删除）
 
 - `src/external/` → `frontend/src/external/`
 - `services/internal/core/` → `backend/internal/core/`
 - `services/cmd/cpamc/` → `backend/cmd/cpamc/`
-- `doc/`
+- `../`
 - `.devcontainer/`（只改内容，不丢脚本）
 
 ## 4. 分阶段实施
@@ -219,7 +219,7 @@ docs（可选）      working_dir: /workspace/doc
 1. `build.sh`
    - `service/app`：frontend build + embed + backend build
    - `cliproxyapi`：`backend/cmd/server`
-   - `docs`：不变（仍 `doc/`）
+   - `docs`：不变（仍 `../`）
 2. `.github/workflows/release.yml` / `docs.yml`
    - 前端工作目录、缓存路径、artifact 路径
    - Go working-directory: `backend`
@@ -237,13 +237,13 @@ docs（可选）      working_dir: /workspace/doc
 必须更新（路径口径切到目标布局）：
 
 - [ ] `AGENTS.md`：current=target，删除“pending migration”歧义
-- [ ] `doc/architecture/community-sync.md`：执行路径改为 `frontend/` + `backend/`
-- [ ] `doc/architecture/cliproxyapi-dual-engine.md`
-- [ ] `doc/architecture/monorepo-migration-plan.md`（本文状态改为 completed）
+- [ ] `../architecture/community-sync.md`：执行路径改为 `frontend/` + `backend/`
+- [ ] `../architecture/cliproxyapi-dual-engine.md`
+- [ ] `../architecture/monorepo-migration-plan.md`（本文状态改为 completed）
 - [ ] `backend/CLIPROXYAPI_UPSTREAM_CN.md` 内路径
 - [ ] 其他高流量文档中的 `services/`、`src/external` 引用（至少 architecture/development/sqlite 入口页）
 
-历史方案（`doc/history/**`、`doc/archive/**`）策略：
+历史方案（`../history/**`、`../archive/**`）策略：
 
 - **默认只改仍被当操作手册引用的路径**
 - 纯历史叙述可不强制全量替换，避免噪声；若替换，使用机械替换并抽查

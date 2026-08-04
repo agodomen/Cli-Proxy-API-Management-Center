@@ -16,4 +16,4 @@
 
 ## 自动发布
 
-提交到配置分支且文档相关文件发生变化时，GitHub Actions 会构建 `doc/.vitepress/dist` 并发布到 GitHub Pages。
+提交到配置分支且文档相关文件发生变化时，GitHub Actions 会构建 `../.vitepress/dist` 并发布到 GitHub Pages。
