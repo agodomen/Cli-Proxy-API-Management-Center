@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FRONTEND_DIR="${ROOT_DIR}/frontend"
 BACKEND_DIR="${ROOT_DIR}/backend"
-DOC_DIR="${ROOT_DIR}/doc"
+DOC_DIR="${ROOT_DIR}/docs"
 COMMAND="${1:-all}"
 
 install_docs() {
