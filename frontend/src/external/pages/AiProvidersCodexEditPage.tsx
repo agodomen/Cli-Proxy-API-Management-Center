@@ -11,19 +11,22 @@ import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
-import { modelsApi, providersApi } from '@/services/api';
+import { SecondaryScreenShell } from '@/external/components/common/SecondaryScreenShell';
+import {modelsApi} from '@/services/api';
+import { providersApi } from '@/external/services/api/providersExt';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { ProviderKeyConfig } from '@/types';
-import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
+import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/external/utils/headers';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
+import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/external/utils/compare';
 import { entriesToModels, modelsToEntries } from '@/external/components/ui/modelInputListUtils';
 import { excludedModelsToText, parseExcludedModels } from '@/external/components/providers/utils';
 import type { ProviderFormState } from '@/external/components/providers';
 import type { ModelInfo } from '@/utils/models';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
 import styles from './AiProvidersPage.module.scss';
+import { fetchConfigSection } from '@/external/utils/configSection';
+import { modelsApiExt } from '@/external/services/api/modelsExtension';
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -143,7 +146,7 @@ export function AiProvidersCodexEditPage() {
       navigate(-1);
       return;
     }
-    navigate('/ai-providers', { replace: true });
+    navigate('/auth/providers', { replace: true });
   }, [location.state, navigate]);
 
   const swipeRef = useEdgeSwipeBack({ onBack: handleBack });
@@ -163,7 +166,7 @@ export function AiProvidersCodexEditPage() {
     setLoading(true);
     setError('');
 
-    fetchConfig('codex-api-key')
+    fetchConfigSection('codex-api-key')
       .then((value) => {
         if (cancelled) return;
         setConfigs(Array.isArray(value) ? (value as ProviderKeyConfig[]) : []);
@@ -355,7 +358,7 @@ export function AiProvidersCodexEditPage() {
       return;
     }
 
-    const nextEndpoint = modelsApi.buildV1ModelsEndpoint(form.baseUrl ?? '');
+    const nextEndpoint = modelsApiExt.buildV1ModelsEndpoint(form.baseUrl ?? '');
     setModelDiscoveryEndpoint(nextEndpoint);
     setDiscoveredModels([]);
     setModelDiscoverySearch('');

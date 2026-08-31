@@ -155,7 +155,7 @@ func TestDebugQueryHTTPEndpoints(t *testing.T) {
 	handler, _ := newTestConsoleHandler(t)
 
 	// list databases
-	req := httptest.NewRequest(http.MethodGet, "/api/charitable/debug/databases", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/debug/databases", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -163,7 +163,7 @@ func TestDebugQueryHTTPEndpoints(t *testing.T) {
 	}
 
 	// schema
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/debug/databases/primary/schema", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/debug/databases/primary/schema", nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -172,7 +172,7 @@ func TestDebugQueryHTTPEndpoints(t *testing.T) {
 
 	// write without confirm
 	body := `{"databaseId":"primary","sql":"DELETE FROM cpa_channel_info WHERE 0","confirmWrite":false}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/debug/query", strings.NewReader(body))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/debug/query", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -187,7 +187,7 @@ func TestDebugQueryHTTPEndpoints(t *testing.T) {
 
 	// select ok
 	body = `{"databaseId":"primary","sql":"SELECT 1 AS n","confirmWrite":false}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/debug/query", strings.NewReader(body))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/debug/query", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)

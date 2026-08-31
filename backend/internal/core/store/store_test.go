@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -80,6 +81,59 @@ func TestOpenRejectsLegacyDuplicateProxyIndexes(t *testing.T) {
 	}
 	if err == nil || !strings.Contains(err.Error(), "resolve duplicates") {
 		t.Fatalf("open error = %v, want duplicate business key error", err)
+	}
+}
+
+func TestOpenMigratesLegacyClashSubscriptionColumns(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "legacy-subscription.sqlite")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatalf("open raw sqlite: %v", err)
+	}
+	_, err = db.Exec(`
+		CREATE TABLE cpa_clash_subscription (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			token TEXT NOT NULL UNIQUE,
+			proxy_ids TEXT NOT NULL DEFAULT '[]',
+			access_count INTEGER NOT NULL DEFAULT 0,
+			effective_at DATETIME NOT NULL,
+			expires_at DATETIME,
+			create_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		INSERT INTO cpa_clash_subscription (token, proxy_ids, effective_at)
+		VALUES ('0123456789abcdef0123456789abcdef0123456789abcdef', '[7,9]', '2026-08-18 00:00:00');
+	`)
+	if err != nil {
+		_ = db.Close()
+		t.Fatalf("seed legacy subscription table: %v", err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("close raw sqlite: %v", err)
+	}
+
+	store, err := Open(path)
+	if err != nil {
+		t.Fatalf("open migrated store: %v", err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+
+	for _, column := range []string{"subscription_type", "proxy_urls"} {
+		var count int
+		if err := store.DB().QueryRow("SELECT COUNT(*) FROM pragma_table_info('cpa_clash_subscription') WHERE name = ?", column).Scan(&count); err != nil {
+			t.Fatalf("inspect %s: %v", column, err)
+		}
+		if count != 1 {
+			t.Fatalf("column %s count = %d, want 1", column, count)
+		}
+	}
+	var subscriptionType int
+	var proxyIDs, proxyURLs string
+	if err := store.DB().QueryRow(`SELECT subscription_type, proxy_ids, proxy_urls FROM cpa_clash_subscription WHERE id=1`).Scan(&subscriptionType, &proxyIDs, &proxyURLs); err != nil {
+		t.Fatalf("read migrated subscription: %v", err)
+	}
+	if subscriptionType != 2 || proxyIDs != "[7,9]" || proxyURLs != "[]" {
+		t.Fatalf("migrated subscription = type %d, ids %s, urls %s", subscriptionType, proxyIDs, proxyURLs)
 	}
 }
 
@@ -596,6 +650,127 @@ func TestNormalizeUsageSortKeyUsesWhitelist(t *testing.T) {
 	}
 	if got := normalizeUsageSortKey("timestamp_ms desc"); got != defaultUsageSortKey {
 		t.Fatalf("invalid sort key = %q, want %q", got, defaultUsageSortKey)
+	}
+}
+
+func TestStoreResolvesCompositeModelPrices(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "model-prices.sqlite"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	prices := map[string]ModelPrice{
+		"gpt-5.6": {Prompt: 10, Completion: 20, Cache: 2},
+		"gpt-5.4": {Prompt: 4, Completion: 8, Cache: 1},
+		"auto": {
+			Mode: ModelPriceModeComposite,
+			Mappings: []ModelPriceMapping{
+				{Model: "gpt-5.6", Coefficient: 0.8},
+				{Model: "gpt-5.4", Coefficient: 0.2},
+			},
+		},
+	}
+	if err := db.SaveModelPrices(context.Background(), prices); err != nil {
+		t.Fatalf("save model prices: %v", err)
+	}
+
+	loaded, err := db.LoadModelPrices(context.Background())
+	if err != nil {
+		t.Fatalf("load model prices: %v", err)
+	}
+	auto := loaded["auto"]
+	if auto.Mode != ModelPriceModeComposite || len(auto.Mappings) != 2 {
+		t.Fatalf("composite definition = %#v", auto)
+	}
+	if math.Abs(auto.Prompt-8.8) > 1e-9 || math.Abs(auto.Completion-17.6) > 1e-9 || math.Abs(auto.Cache-1.8) > 1e-9 {
+		t.Fatalf("composite price = %#v", auto)
+	}
+
+	_, err = db.UpsertSyncedModelPrices(context.Background(), map[string]ModelPrice{
+		"gpt-5.6": {Prompt: 20, Completion: 40, Cache: 4},
+	})
+	if err != nil {
+		t.Fatalf("sync source model price: %v", err)
+	}
+	loaded, err = db.LoadModelPrices(context.Background())
+	if err != nil {
+		t.Fatalf("reload model prices: %v", err)
+	}
+	auto = loaded["auto"]
+	if math.Abs(auto.Prompt-16.8) > 1e-9 || math.Abs(auto.Completion-33.6) > 1e-9 || math.Abs(auto.Cache-3.4) > 1e-9 {
+		t.Fatalf("recalculated composite price = %#v", auto)
+	}
+}
+
+func TestStoreRejectsInvalidCompositeModelPrices(t *testing.T) {
+	db, err := Open(filepath.Join(t.TempDir(), "invalid-model-prices.sqlite"))
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	tests := []struct {
+		name   string
+		prices map[string]ModelPrice
+		want   string
+	}{
+		{
+			name: "missing source",
+			prices: map[string]ModelPrice{
+				"auto": {Mode: ModelPriceModeComposite, Mappings: []ModelPriceMapping{{Model: "missing", Coefficient: 1}}},
+			},
+			want: "does not have a price",
+		},
+		{
+			name: "cycle",
+			prices: map[string]ModelPrice{
+				"auto":  {Mode: ModelPriceModeComposite, Mappings: []ModelPriceMapping{{Model: "smart", Coefficient: 1}}},
+				"smart": {Mode: ModelPriceModeComposite, Mappings: []ModelPriceMapping{{Model: "auto", Coefficient: 1}}},
+			},
+			want: "cycle detected",
+		},
+		{
+			name: "duplicate source",
+			prices: map[string]ModelPrice{
+				"gpt-5.6": {Prompt: 10},
+				"auto": {
+					Mode: ModelPriceModeComposite,
+					Mappings: []ModelPriceMapping{
+						{Model: "gpt-5.6", Coefficient: 0.8},
+						{Model: "gpt-5.6", Coefficient: 0.2},
+					},
+				},
+			},
+			want: "more than once",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			errSave := db.SaveModelPrices(context.Background(), test.prices)
+			if errSave == nil || !strings.Contains(errSave.Error(), test.want) {
+				t.Fatalf("save error = %v, want substring %q", errSave, test.want)
+			}
+		})
+	}
+}
+
+func TestUsageDetailCostPrefersCompositeRequestedModel(t *testing.T) {
+	prices := map[string]ModelPrice{
+		"auto":    {Prompt: 8.8, Mode: ModelPriceModeComposite, Mappings: []ModelPriceMapping{{Model: "gpt-5.6", Coefficient: 1}}},
+		"gpt-5.6": {Prompt: 10},
+	}
+	item := usageBreakdownDetail{
+		Model: "auto",
+		Detail: usage.Detail{
+			ResolvedModel: "gpt-5.6",
+			Tokens:        usage.Tokens{InputTokens: 1_000_000},
+		},
+	}
+
+	got := usageDetailCost(item, prices, buildUsageModelPriceIndex(prices))
+	if math.Abs(got-8.8) > 1e-9 {
+		t.Fatalf("usage detail cost = %v, want 8.8", got)
 	}
 }
 

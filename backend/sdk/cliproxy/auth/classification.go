@@ -15,7 +15,6 @@ const (
 
 	AttributeAPIKey        = "api_key"
 	AttributeAuthKind      = "auth_kind"
-	AttributeConfigIndex   = "config_index"
 	AttributePath          = "path"
 	AttributeRuntimeOnly   = "runtime_only"
 	AttributeSource        = "source"

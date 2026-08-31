@@ -14,10 +14,3 @@ export interface Notification {
   type: NotificationType;
   duration?: number;
 }
-
-export interface PaginationState {
-  currentPage: number;
-  pageSize: number;
-  totalPages: number;
-  totalItems?: number;
-}

@@ -18,14 +18,10 @@ interface ConfigState {
   config: Config | null;
 
   // 操作
-  fetchConfig: {
-    (section?: undefined, forceRefresh?: boolean): Promise<Config>;
-    (section: RawConfigSection, forceRefresh?: boolean): Promise<unknown>;
-    (forceRefresh?: boolean): Promise<Config>;
-  };
+  fetchConfig: (forceRefresh?: boolean) => Promise<Config>;
   updateConfigValue: (section: RawConfigSection, value: unknown) => void;
   clearCache: (section?: RawConfigSection) => void;
-  isCacheValid: (section?: RawConfigSection) => boolean;
+  isCacheValid: () => boolean;
 }
 
 let configRequestToken = 0;
@@ -35,72 +31,18 @@ let fullConfigCache: ConfigCache | null = null;
 const isFullCacheValid = () =>
   fullConfigCache !== null && Date.now() - fullConfigCache.timestamp < CACHE_EXPIRY_MS;
 
-const extractSectionValue = (config: Config, section: RawConfigSection): unknown => {
-  switch (section) {
-    case 'debug':
-      return config.debug;
-    case 'proxy-url':
-      return config.proxyUrl;
-    case 'request-retry':
-      return config.requestRetry;
-    case 'quota-exceeded':
-      return config.quotaExceeded;
-    case 'request-log':
-      return config.requestLog;
-    case 'logging-to-file':
-      return config.loggingToFile;
-    case 'logs-max-total-size-mb':
-      return config.logsMaxTotalSizeMb;
-    case 'ws-auth':
-      return config.wsAuth;
-    case 'force-model-prefix':
-      return config.forceModelPrefix;
-    case 'routing/strategy':
-      return config.routingStrategy;
-    case 'api-keys':
-      return config.apiKeys;
-    case 'gemini-api-key':
-      return config.geminiApiKeys;
-    case 'codex-api-key':
-      return config.codexApiKeys;
-    case 'xai-api-key':
-      return config.xaiApiKeys;
-    case 'claude-api-key':
-      return config.claudeApiKeys;
-    case 'vertex-api-key':
-      return config.vertexApiKeys;
-    case 'openai-compatibility':
-      return config.openaiCompatibility;
-    case 'oauth-excluded-models':
-      return config.oauthExcludedModels;
-    default:
-      return config.raw?.[section];
-  }
-};
-
 export const useConfigStore = create<ConfigState>((set, get) => ({
   config: null,
 
-  fetchConfig: (async (
-    sectionOrForceRefresh?: RawConfigSection | boolean,
-    forceRefresh = false
-  ) => {
-    const section =
-      typeof sectionOrForceRefresh === 'string' ? sectionOrForceRefresh : undefined;
-    const shouldForceRefresh =
-      typeof sectionOrForceRefresh === 'boolean' ? sectionOrForceRefresh : forceRefresh;
-
+  fetchConfig: async (forceRefresh = false) => {
     // 检查缓存
-    if (!shouldForceRefresh && fullConfigCache && isFullCacheValid()) {
-      return section
-        ? extractSectionValue(fullConfigCache.data, section)
-        : fullConfigCache.data;
+    if (!forceRefresh && fullConfigCache && isFullCacheValid()) {
+      return fullConfigCache.data;
     }
 
     // 同一时刻合并多个 /config 请求（如 StrictMode 或多个页面同时触发）
     if (inFlightConfigRequest) {
-      const data = await inFlightConfigRequest.promise;
-      return section ? extractSectionValue(data, section) : data;
+      return inFlightConfigRequest.promise;
     }
 
     const requestId = (configRequestToken += 1);
@@ -111,18 +53,18 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
       // 如果在请求过程中连接已被切换/登出，则忽略旧请求的结果，避免覆盖新会话的状态
       if (requestId !== configRequestToken) {
-        return section ? extractSectionValue(data, section) : data;
+        return data;
       }
 
       fullConfigCache = { data, timestamp: Date.now() };
       set({ config: data });
-      return section ? extractSectionValue(data, section) : data;
+      return data;
     } finally {
       if (inFlightConfigRequest?.id === requestId) {
         inFlightConfigRequest = null;
       }
     }
-  }) as ConfigState['fetchConfig'],
+  },
 
   updateConfigValue: (section, value) => {
     set((state) => {

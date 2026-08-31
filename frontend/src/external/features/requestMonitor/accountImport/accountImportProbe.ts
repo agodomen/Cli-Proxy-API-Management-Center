@@ -4,16 +4,14 @@
  */
 
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api/apiCall';
-import {
-  CLAUDE_USAGE_URL,
+import {  CLAUDE_USAGE_URL,
   CLAUDE_REQUEST_HEADERS,
   CODEX_USAGE_URL,
   CODEX_REQUEST_HEADERS,
   KIMI_USAGE_URL,
   KIMI_REQUEST_HEADERS,
-  XAI_BILLING_URL,
-  XAI_REQUEST_HEADERS,
-} from '@/utils/quota/constants';
+  XAI_REQUEST_HEADERS,} from '@/utils/quota/constants';
+import { XAI_BILLING_URL } from '@/external/utils/quota/quotaExtension';
 import type { AccountImportItem } from './accountImportConverter';
 
 export type AccountImportProbeStatus = {

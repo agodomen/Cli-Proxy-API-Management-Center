@@ -30,7 +30,7 @@ func TestHandlerChannelCRUD(t *testing.T) {
 
 	// Create
 	body := `{"channel_name":"test-ch","description":"test channel","param":"{\"k\":\"v\"}","url":"https://example.com"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/channels", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/channels", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -43,7 +43,7 @@ func TestHandlerChannelCRUD(t *testing.T) {
 	}
 
 	// Get
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/channels/"+itoa(ch.ChannelID), nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/channels/"+itoa(ch.ChannelID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -51,7 +51,7 @@ func TestHandlerChannelCRUD(t *testing.T) {
 	}
 
 	// List
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/channels?page=1&page_size=10", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/channels?page=1&page_size=10", nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -65,7 +65,7 @@ func TestHandlerChannelCRUD(t *testing.T) {
 
 	// Update
 	body = `{"channel_name":"updated-ch","param":"{}","url":""}`
-	req = httptest.NewRequest(http.MethodPut, "/api/charitable/channels/"+itoa(ch.ChannelID), strings.NewReader(body))
+	req = httptest.NewRequest(http.MethodPut, "/v0/cpamc/charitable/channels/"+itoa(ch.ChannelID), strings.NewReader(body))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -73,7 +73,7 @@ func TestHandlerChannelCRUD(t *testing.T) {
 	}
 
 	// Delete
-	req = httptest.NewRequest(http.MethodDelete, "/api/charitable/channels/"+itoa(ch.ChannelID), nil)
+	req = httptest.NewRequest(http.MethodDelete, "/v0/cpamc/charitable/channels/"+itoa(ch.ChannelID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -81,7 +81,7 @@ func TestHandlerChannelCRUD(t *testing.T) {
 	}
 
 	// Get after soft delete → still returns row (status=-1), but excluded from list
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/channels/"+itoa(ch.ChannelID), nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/channels/"+itoa(ch.ChannelID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -98,7 +98,7 @@ func TestHandlerProviderCRUD(t *testing.T) {
 	handler := newTestHandler(t)
 
 	body := `{"provider_name":"test-pv","base_url":"https://api.test","param":"{}"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/providers", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/providers", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -111,7 +111,7 @@ func TestHandlerProviderCRUD(t *testing.T) {
 	}
 
 	// Get
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/providers/"+itoa(pv.ProviderID), nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/providers/"+itoa(pv.ProviderID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -120,7 +120,7 @@ func TestHandlerProviderCRUD(t *testing.T) {
 
 	// Update
 	body = `{"provider_name":"updated-pv","base_url":"https://api.test","param":"{}"}`
-	req = httptest.NewRequest(http.MethodPut, "/api/charitable/providers/"+itoa(pv.ProviderID), strings.NewReader(body))
+	req = httptest.NewRequest(http.MethodPut, "/v0/cpamc/charitable/providers/"+itoa(pv.ProviderID), strings.NewReader(body))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -128,7 +128,7 @@ func TestHandlerProviderCRUD(t *testing.T) {
 	}
 
 	// Delete
-	req = httptest.NewRequest(http.MethodDelete, "/api/charitable/providers/"+itoa(pv.ProviderID), nil)
+	req = httptest.NewRequest(http.MethodDelete, "/v0/cpamc/charitable/providers/"+itoa(pv.ProviderID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -140,7 +140,7 @@ func TestHandlerKeyCRUD(t *testing.T) {
 	handler := newTestHandler(t)
 
 	body := `{"api_key":"sk-test-key-1234567890","api_type":2,"status":1,"expires_at_ms":1798761600000,"probe_policy":"{\"failureThreshold\":4}","param":"{}"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -156,7 +156,7 @@ func TestHandlerKeyCRUD(t *testing.T) {
 	}
 
 	// Get
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/keys/"+itoa(key.ID), nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/keys/"+itoa(key.ID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -164,7 +164,7 @@ func TestHandlerKeyCRUD(t *testing.T) {
 	}
 
 	// Get full_param
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/keys/"+itoa(key.ID)+"/full_param", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/keys/"+itoa(key.ID)+"/full_param", nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -172,7 +172,7 @@ func TestHandlerKeyCRUD(t *testing.T) {
 	}
 
 	// Get/Update param
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/keys/"+itoa(key.ID)+"/param", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/keys/"+itoa(key.ID)+"/param", nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -180,7 +180,7 @@ func TestHandlerKeyCRUD(t *testing.T) {
 	}
 
 	paramBody := `{"model":"gpt-4"}`
-	req = httptest.NewRequest(http.MethodPut, "/api/charitable/keys/"+itoa(key.ID)+"/param", strings.NewReader(paramBody))
+	req = httptest.NewRequest(http.MethodPut, "/v0/cpamc/charitable/keys/"+itoa(key.ID)+"/param", strings.NewReader(paramBody))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -188,7 +188,7 @@ func TestHandlerKeyCRUD(t *testing.T) {
 	}
 
 	// Delete
-	req = httptest.NewRequest(http.MethodDelete, "/api/charitable/keys/"+itoa(key.ID), nil)
+	req = httptest.NewRequest(http.MethodDelete, "/v0/cpamc/charitable/keys/"+itoa(key.ID), nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -214,7 +214,7 @@ func TestHandlerKeyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal upsert: %v", err)
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(string(upsertBody)))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(string(upsertBody)))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -235,7 +235,7 @@ func TestHandlerKeyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal query: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/query", strings.NewReader(string(queryBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/query", strings.NewReader(string(queryBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -262,7 +262,7 @@ func TestHandlerKeyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal update: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(string(updatedBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(string(updatedBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -289,7 +289,7 @@ func TestHandlerKeyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal index-only auth: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(string(indexOnlyBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(string(indexOnlyBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -298,7 +298,7 @@ func TestHandlerKeyQueryAndUpsert(t *testing.T) {
 
 	derivedBody := `{"auth_type":1,"auth_value":"sk-derived-auth-1234567890","api_type":2,"param":"{}"}`
 	for attempt, expectedStatus := range []int{http.StatusCreated, http.StatusOK} {
-		req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(derivedBody))
+		req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(derivedBody))
 		rr = httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 		if rr.Code != expectedStatus {
@@ -333,7 +333,7 @@ func TestHandlerKeyUpsertAcceptsUserscriptPayload(t *testing.T) {
 		"remark":"https://linux.do/t/topic/2694328"
 	}`
 
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -376,7 +376,7 @@ func TestHandlerProxyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal proxy upsert: %v", err)
 	}
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/proxies/upsert", strings.NewReader(string(upsertBody)))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies/upsert", strings.NewReader(string(upsertBody)))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -397,7 +397,7 @@ func TestHandlerProxyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal proxy query: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/proxies/query", strings.NewReader(string(queryBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies/query", strings.NewReader(string(queryBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -424,7 +424,7 @@ func TestHandlerProxyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal proxy update: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/proxies/upsert", strings.NewReader(string(updatedBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies/upsert", strings.NewReader(string(updatedBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -450,7 +450,7 @@ func TestHandlerProxyQueryAndUpsert(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal index-only proxy: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/proxies/upsert", strings.NewReader(string(indexOnlyBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies/upsert", strings.NewReader(string(indexOnlyBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -459,12 +459,49 @@ func TestHandlerProxyQueryAndUpsert(t *testing.T) {
 
 	derivedBody := `{"proxy_type":4,"proxy_value":"socks5://derived.example.com:1080","param":"{}"}`
 	for attempt, expectedStatus := range []int{http.StatusCreated, http.StatusOK} {
-		req = httptest.NewRequest(http.MethodPost, "/api/charitable/proxies/upsert", strings.NewReader(derivedBody))
+		req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies/upsert", strings.NewReader(derivedBody))
 		rr = httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 		if rr.Code != expectedStatus {
 			t.Fatalf("derived proxy upsert attempt %d status = %d, body = %s", attempt+1, rr.Code, rr.Body.String())
 		}
+	}
+}
+
+func TestHandlerProxyUpsertAcceptsUserscriptPayload(t *testing.T) {
+	handler := newTestHandler(t)
+	body := `{
+		"proxy_index":"proxy-userscript-001",
+		"proxy_type":0,
+		"proxy_value":"vmess://ewogICJ2IjogIjIiLAogICJhZGQiOiAic2Fhcy5zaW4uZmFuIgp9",
+		"proxy_info":"{}",
+		"status":1,
+		"content":"shared proxy",
+		"owner_id":"448666",
+		"priority":0,
+		"param":"{\"username\":\"ppchang\",\"topic_id\":\"2699107\",\"url\":\"https://linux.do/t/topic/2699107/2\"}",
+		"remark":"https://linux.do/t/topic/2699107/2",
+		"title":"proxy topic"
+	}`
+
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies/upsert", strings.NewReader(body))
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusCreated {
+		t.Fatalf("userscript proxy upsert status = %d, body = %s", rr.Code, rr.Body.String())
+	}
+
+	var response struct {
+		Item ProxyDetail `json:"item"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode userscript proxy response: %v", err)
+	}
+	if response.Item.OwnerID == nil || *response.Item.OwnerID != 448666 {
+		t.Fatalf("owner_id = %v, want 448666", response.Item.OwnerID)
+	}
+	if response.Item.ProxyType != ProxyTypeVMess {
+		t.Fatalf("proxy_type = %d, want %d", response.Item.ProxyType, ProxyTypeVMess)
 	}
 }
 
@@ -477,7 +514,7 @@ func TestHandlerCreatesStructuredOAuthCredential(t *testing.T) {
 		"status":1,
 		"param":"{}"
 	}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -505,7 +542,7 @@ func TestHandlerKeyBatchDelete(t *testing.T) {
 	var ids []int64
 	for i := range 3 {
 		body := `{"api_key":"sk-batch-` + string(rune('0'+i)) + `-1234567890","api_type":2,"status":1,"param":"{}"}`
-		req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys", strings.NewReader(body))
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 		if rr.Code != http.StatusOK {
@@ -518,7 +555,7 @@ func TestHandlerKeyBatchDelete(t *testing.T) {
 
 	// Batch delete
 	reqBody := `{"ids":[` + itoa(ids[0]) + `,` + itoa(ids[1]) + `,` + itoa(ids[2]) + `]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/batch/delete", strings.NewReader(reqBody))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/batch/delete", strings.NewReader(reqBody))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -539,7 +576,7 @@ func TestHandlerKeyBatchToggle(t *testing.T) {
 	var ids []int64
 	for i := range 2 {
 		body := `{"api_key":"sk-toggle-` + string(rune('0'+i)) + `-1234567890","api_type":2,"status":1,"param":"{}"}`
-		req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys", strings.NewReader(body))
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 		var key APIKey
@@ -548,7 +585,7 @@ func TestHandlerKeyBatchToggle(t *testing.T) {
 	}
 
 	reqBody := `{"ids":[` + itoa(ids[0]) + `,` + itoa(ids[1]) + `],"status":0}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/batch/disable", strings.NewReader(reqBody))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/batch/disable", strings.NewReader(reqBody))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -571,7 +608,7 @@ func TestHandlerKeyStatusCounts(t *testing.T) {
 		`{"api_key":"sk-status-count-b-1234567890","api_type":2,"status":0,"param":"{}"}`,
 		`{"api_key":"sk-status-count-c-1234567890","api_type":2,"status":-401,"param":"{}"}`,
 	} {
-		req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys", strings.NewReader(body))
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
 		if rr.Code != http.StatusOK {
@@ -579,7 +616,7 @@ func TestHandlerKeyStatusCounts(t *testing.T) {
 		}
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/charitable/keys/statuses", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/keys/statuses", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -599,7 +636,7 @@ func TestHandlerValidationErrors(t *testing.T) {
 
 	// Empty channel name
 	body := `{"channel_name":"","param":"{}"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/channels", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/channels", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -608,7 +645,7 @@ func TestHandlerValidationErrors(t *testing.T) {
 
 	// Invalid base URL
 	body = `{"provider_name":"pv","base_url":"not-a-url","param":"{}"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/providers", strings.NewReader(body))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/providers", strings.NewReader(body))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -617,7 +654,7 @@ func TestHandlerValidationErrors(t *testing.T) {
 
 	// Short API key
 	body = `{"api_key":"short","api_type":2,"param":"{}"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys", strings.NewReader(body))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys", strings.NewReader(body))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -625,7 +662,7 @@ func TestHandlerValidationErrors(t *testing.T) {
 	}
 
 	// Invalid JSON body
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/channels", strings.NewReader("not-json"))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/channels", strings.NewReader("not-json"))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -636,21 +673,21 @@ func TestHandlerValidationErrors(t *testing.T) {
 func TestHandlerNotFound(t *testing.T) {
 	handler := newTestHandler(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/charitable/channels/999", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/channels/999", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rr.Code)
 	}
 
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/providers/999", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/providers/999", nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rr.Code)
 	}
 
-	req = httptest.NewRequest(http.MethodGet, "/api/charitable/keys/999", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/keys/999", nil)
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNotFound {
@@ -661,7 +698,7 @@ func TestHandlerNotFound(t *testing.T) {
 func TestHandlerMethodNotAllowed(t *testing.T) {
 	handler := newTestHandler(t)
 
-	req := httptest.NewRequest(http.MethodPatch, "/api/charitable/channels", nil)
+	req := httptest.NewRequest(http.MethodPatch, "/v0/cpamc/charitable/channels", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusMethodNotAllowed {
@@ -672,7 +709,7 @@ func TestHandlerMethodNotAllowed(t *testing.T) {
 func TestHandlerInvalidID(t *testing.T) {
 	handler := newTestHandler(t)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/charitable/channels/abc", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/channels/abc", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -689,7 +726,7 @@ func TestHandlerBatchLimitExceeded(t *testing.T) {
 		ids = append(ids, itoa(int64(i+1)))
 	}
 	body := `{"ids":[` + strings.Join(ids, ",") + `]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/batch/delete", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/batch/delete", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -700,7 +737,7 @@ func TestHandlerBatchLimitExceeded(t *testing.T) {
 func TestHandlerUnknownBatchAction(t *testing.T) {
 	handler := newTestHandler(t)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/batch/unknown", nil)
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/batch/unknown", nil)
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusNotFound {
@@ -711,7 +748,7 @@ func TestHandlerUnknownBatchAction(t *testing.T) {
 func TestHandlerBatchEmptyIDs(t *testing.T) {
 	handler := newTestHandler(t)
 
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/keys/batch/delete", strings.NewReader(`{"ids":[]}`))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/batch/delete", strings.NewReader(`{"ids":[]}`))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusBadRequest {
@@ -747,7 +784,7 @@ func TestHandlerKeyUpsertResolvesProviderFromAuthInfoBaseURL(t *testing.T) {
 
 	// Create provider with a known base_url.
 	providerBody := `{"provider_name":"match-pv","base_url":"https://edge.example.com/v1","param":"{}","status":1}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/providers", strings.NewReader(providerBody))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/providers", strings.NewReader(providerBody))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -774,7 +811,7 @@ func TestHandlerKeyUpsertResolvesProviderFromAuthInfoBaseURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal upsert: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(string(upsertBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(string(upsertBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -793,7 +830,7 @@ func TestHandlerKeyUpsertResolvesProviderFromAuthInfoBaseURL(t *testing.T) {
 
 	// Explicit provider_id must win over auth_info.base_url.
 	otherBody := `{"provider_name":"other-pv","base_url":"https://other.example.com/v1","param":"{}","status":1}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/providers", strings.NewReader(otherBody))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/providers", strings.NewReader(otherBody))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -816,7 +853,7 @@ func TestHandlerKeyUpsertResolvesProviderFromAuthInfoBaseURL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal explicit upsert: %v", err)
 	}
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(string(explicitBody)))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(string(explicitBody)))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -835,7 +872,7 @@ func TestHandlerKeyUpsertResolvesProviderFromAuthInfoBaseURL(t *testing.T) {
 
 	// Missing base_url and provider_id remains unbound.
 	unboundBody := `{"auth_index":"auth-auto-provider-003","auth_type":1,"auth_value":"sk-auto-provider-unbound-1234567890","api_type":2,"status":1,"param":"{}"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/keys/upsert", strings.NewReader(unboundBody))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/keys/upsert", strings.NewReader(unboundBody))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusCreated {
@@ -855,7 +892,7 @@ func TestHandlerKeyUpsertResolvesProviderFromAuthInfoBaseURL(t *testing.T) {
 func TestHandlerProviderMultiProtocolType(t *testing.T) {
 	handler := newTestHandler(t)
 	body := `{"provider_name":"multi-proto","base_url":"https://multi.example.com/v1","protocol_type":"openai_compatible,anthropic","param":"{}","status":1}`
-	req := httptest.NewRequest(http.MethodPost, "/api/charitable/providers", strings.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/providers", strings.NewReader(body))
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code != http.StatusOK {
@@ -874,7 +911,7 @@ func TestHandlerProviderMultiProtocolType(t *testing.T) {
 
 	// Invalid protocol token is rejected.
 	bad := `{"provider_name":"bad-proto","base_url":"https://bad.example.com/v1","protocol_type":"openai_compatible,not_a_protocol","param":"{}"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/charitable/providers", strings.NewReader(bad))
+	req = httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/providers", strings.NewReader(bad))
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
 	if rr.Code == http.StatusOK {

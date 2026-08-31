@@ -3,6 +3,10 @@ package charitable
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -153,5 +157,51 @@ func TestProxyBatchStoreOperations(t *testing.T) {
 	}
 	if result.TotalItems != 1 || len(result.Items) != 1 || result.Items[0].ID != proxies[1].ID {
 		t.Fatalf("unexpected proxies after batch delete: %+v", result)
+	}
+}
+
+func TestHandlerBatchDeleteProxiesByURLs(t *testing.T) {
+	srv := openTestDB(t)
+	ctx := context.Background()
+	store := NewCharitableStore(srv.DB())
+	first := &ProxyDetail{ProxyValue: "http://one.example.com:8080", ProxyInfo: "one", Status: 1, Param: "{}"}
+	duplicate := &ProxyDetail{ProxyIndex: "custom-one-index", ProxyValue: first.ProxyValue, ProxyInfo: "duplicate one", Status: 1, Param: "{}"}
+	second := &ProxyDetail{ProxyValue: "ss://two.example.com:8388", ProxyInfo: "two", Status: 1, Param: "{}"}
+	for _, proxy := range []*ProxyDetail{first, duplicate, second} {
+		if err := store.CreateProxy(ctx, proxy); err != nil {
+			t.Fatalf("create proxy: %v", err)
+		}
+	}
+	handler := NewHandler(store)
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+	response := httptest.NewRecorder()
+	mux.ServeHTTP(response, httptest.NewRequest(
+		http.MethodPost,
+		"/v0/cpamc/charitable/proxies/batch/delete-by-urls",
+		strings.NewReader(`{"content":"`+first.ProxyValue+`\n`+first.ProxyValue+`\nhttp://missing.example.com:80"}`),
+	))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, body=%s", response.Code, response.Body.String())
+	}
+	var result struct {
+		Total   int      `json:"total"`
+		Matched int      `json:"matched"`
+		Deleted int64    `json:"deleted"`
+		Missing []string `json:"missing"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if result.Total != 2 || result.Matched != 2 || result.Deleted != 2 || len(result.Missing) != 1 {
+		t.Fatalf("unexpected delete result: %+v", result)
+	}
+	for _, id := range []int64{first.ID, duplicate.ID} {
+		if _, err := store.GetProxy(ctx, id); err == nil {
+			t.Fatalf("matched proxy %d still exists", id)
+		}
+	}
+	if _, err := store.GetProxy(ctx, second.ID); err != nil {
+		t.Fatalf("unmatched proxy was deleted: %v", err)
 	}
 }

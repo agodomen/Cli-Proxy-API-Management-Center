@@ -3,18 +3,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { providersApi } from '@/services/api';
+import { providersApi } from '@/external/services/api/providersExt';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import { useClaudeEditDraftStore } from '@/external/stores/useClaudeEditDraftStore';
 import type { ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import type { ModelEntry, ProviderFormState } from '@/external/components/providers/types';
-import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
+import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/external/utils/headers';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
+import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/external/utils/compare';
 import { excludedModelsToText, parseExcludedModels } from '@/external/components/providers/utils';
 import { modelsToEntries } from '@/external/components/ui/modelInputListUtils';
 import type { ClaudeEditBaseline } from '@/external/stores/useClaudeEditDraftStore';
+import { fetchConfigSection } from '@/external/utils/configSection';
+
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -139,7 +141,7 @@ export function AiProvidersClaudeEditLayout() {
   const clearCache = useConfigStore((state) => state.clearCache);
 
   const [configs, setConfigs] = useState<ProviderKeyConfig[]>(() => config?.claudeApiKeys ?? []);
-  const [loading, setLoading] = useState(() => !isCacheValid('claude-api-key'));
+  const [loading, setLoading] = useState(() => !isCacheValid());
   const [saving, setSaving] = useState(false);
 
   const draftKey = useMemo(() => {
@@ -214,17 +216,17 @@ export function AiProvidersClaudeEditLayout() {
       navigate(-1);
       return;
     }
-    navigate('/ai-providers', { replace: true });
+    navigate('/auth/providers', { replace: true });
   }, [location.state, navigate]);
 
   useEffect(() => {
     let cancelled = false;
-    const hasValidCache = isCacheValid('claude-api-key');
+    const hasValidCache = isCacheValid();
     if (!hasValidCache) {
       setLoading(true);
     }
 
-    fetchConfig('claude-api-key')
+    fetchConfigSection('claude-api-key')
       .then((value) => {
         if (cancelled) return;
         setConfigs(Array.isArray(value) ? (value as ProviderKeyConfig[]) : []);
@@ -325,9 +327,9 @@ export function AiProvidersClaudeEditLayout() {
       isCloakDirty);
   const editorRootPath = useMemo(() => {
     if (hasIndexParam) {
-      return `/ai-providers/claude/${params.index ?? ''}`;
+      return `/auth/providers/claude/${params.index ?? ''}`;
     }
-    return '/ai-providers/claude/new';
+    return '/auth/providers/claude/new';
   }, [hasIndexParam, params.index]);
   const canGuard = !resolvedLoading && !saving && !invalidIndexParam && !invalidIndex;
 

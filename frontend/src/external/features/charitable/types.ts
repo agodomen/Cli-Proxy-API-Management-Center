@@ -182,6 +182,19 @@ export interface ProxyDetail {
   remark?: string;
 }
 
+export interface ClashSubscription {
+  id: number;
+  token: string;
+  subscription_type: 2 | 3;
+  proxy_ids: number[];
+  proxy_urls: string[];
+  access_count: number;
+  effective_at: string;
+  expires_at?: string | null;
+  create_at: string;
+  update_at: string;
+}
+
 /** Proxy protocol family enum. socks4/socks5 both map to socks. */
 export const PROXY_TYPE_MAP = {
   1: 'unknown',

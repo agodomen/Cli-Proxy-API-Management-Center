@@ -1,16 +1,14 @@
 import type { AxiosRequestConfig } from 'axios';
 import { apiCallApi } from '@/services/api/apiCall';
 import { requestCodexUsageRaw } from '@/external/services/api/codexQuota';
-import {
-  ANTIGRAVITY_QUOTA_URLS,
+import {  ANTIGRAVITY_QUOTA_URLS,
   ANTIGRAVITY_REQUEST_HEADERS,
   CLAUDE_REQUEST_HEADERS,
   CLAUDE_USAGE_URL,
   KIMI_REQUEST_HEADERS,
   KIMI_USAGE_URL,
-  XAI_BILLING_URL,
-  XAI_REQUEST_HEADERS,
-} from '@/utils/quota/constants';
+  XAI_REQUEST_HEADERS,} from '@/utils/quota/constants';
+import { XAI_BILLING_URL } from '@/external/utils/quota/quotaExtension';
 import {
   GEMINI_CLI_QUOTA_URL,
   GEMINI_CLI_REQUEST_HEADERS,

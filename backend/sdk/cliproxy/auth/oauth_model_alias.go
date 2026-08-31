@@ -112,9 +112,9 @@ func modelAliasLookupCandidates(requestedModel string) (thinking.SuffixResult, [
 	if base == "" {
 		base = requestedModel
 	}
-	candidates := []string{requestedModel}
+	candidates := []string{base}
 	if base != requestedModel {
-		candidates = append(candidates, base)
+		candidates = append(candidates, requestedModel)
 	}
 	return requestResult, candidates
 }
@@ -151,12 +151,12 @@ func resolveModelAliasPoolFromConfigModels(requestedModel string, models []model
 		return nil
 	}
 
-	for _, candidate := range candidates {
-		out := make([]string, 0)
-		seen := make(map[string]struct{})
-		for i := range models {
-			name := strings.TrimSpace(models[i].GetName())
-			alias := strings.TrimSpace(models[i].GetAlias())
+	out := make([]string, 0)
+	seen := make(map[string]struct{})
+	for i := range models {
+		name := strings.TrimSpace(models[i].GetName())
+		alias := strings.TrimSpace(models[i].GetAlias())
+		for _, candidate := range candidates {
 			if candidate == "" || alias == "" || !strings.EqualFold(alias, candidate) {
 				continue
 			}
@@ -167,22 +167,23 @@ func resolveModelAliasPoolFromConfigModels(requestedModel string, models []model
 			resolved = preserveResolvedModelSuffix(resolved, requestResult)
 			key := strings.ToLower(strings.TrimSpace(resolved))
 			if key == "" {
-				continue
+				break
 			}
 			if _, exists := seen[key]; exists {
-				continue
+				break
 			}
 			seen[key] = struct{}{}
 			out = append(out, resolved)
-		}
-		if len(out) > 0 {
-			return out
+			break
 		}
 	}
+	if len(out) > 0 {
+		return out
+	}
 
-	for _, candidate := range candidates {
-		for i := range models {
-			name := strings.TrimSpace(models[i].GetName())
+	for i := range models {
+		name := strings.TrimSpace(models[i].GetName())
+		for _, candidate := range candidates {
 			if candidate == "" || name == "" || !strings.EqualFold(name, candidate) {
 				continue
 			}
@@ -213,15 +214,15 @@ func resolveModelAliasResultFromConfigModels(requestedModel string, models []mod
 	if baseModel == "" {
 		baseModel = requestedModel
 	}
-	for _, candidate := range candidates {
-		key := strings.TrimSpace(candidate)
-		if key == "" {
+	for i := range models {
+		original := strings.TrimSpace(models[i].GetName())
+		alias := strings.TrimSpace(models[i].GetAlias())
+		if original == "" || alias == "" {
 			continue
 		}
-		for i := range models {
-			original := strings.TrimSpace(models[i].GetName())
-			alias := strings.TrimSpace(models[i].GetAlias())
-			if original == "" || alias == "" || !strings.EqualFold(alias, key) {
+		for _, candidate := range candidates {
+			key := strings.TrimSpace(candidate)
+			if key == "" || !strings.EqualFold(alias, key) {
 				continue
 			}
 			if strings.EqualFold(original, baseModel) {
@@ -342,15 +343,15 @@ func resolveUpstreamModelFromAliases(aliases []internalconfig.OAuthModelAlias, r
 	if baseModel == "" {
 		baseModel = strings.TrimSpace(requestedModel)
 	}
-	for _, candidate := range candidates {
-		key := strings.TrimSpace(candidate)
-		if key == "" {
+	for _, entry := range aliases {
+		original := strings.TrimSpace(entry.Name)
+		alias := strings.TrimSpace(entry.Alias)
+		if original == "" || alias == "" {
 			continue
 		}
-		for _, entry := range aliases {
-			original := strings.TrimSpace(entry.Name)
-			alias := strings.TrimSpace(entry.Alias)
-			if original == "" || alias == "" || !strings.EqualFold(alias, key) {
+		for _, candidate := range candidates {
+			key := strings.TrimSpace(candidate)
+			if key == "" || !strings.EqualFold(alias, key) {
 				continue
 			}
 			if strings.EqualFold(original, baseModel) {
@@ -393,8 +394,13 @@ func resolveUpstreamModelFromAliasTable(m *Manager, auth *Auth, requestedModel, 
 		return OAuthModelAliasResult{}
 	}
 
-	requestResult, candidates := modelAliasLookupCandidates(requestedModel)
+	requestResult := thinking.ParseSuffix(requestedModel)
 	baseModel := requestResult.ModelName
+
+	candidates := []string{baseModel}
+	if baseModel != requestedModel {
+		candidates = append(candidates, requestedModel)
+	}
 
 	raw := m.oauthModelAlias.Load()
 	table, _ := raw.(*oauthModelAliasTable)

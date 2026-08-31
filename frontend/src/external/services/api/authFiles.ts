@@ -1,10 +1,15 @@
 /**
  * CPA-specific authFiles API extension.
+ * Re-exports the extended authFilesApi with secondary-dev methods.
  */
 
 import { apiClient } from '@/services/api/client';
 
-export { authFilesApi } from '@/services/api/authFiles';
+export { authFilesApiExt as authFilesApi } from '@/external/services/api/authFilesExtension';
+export {
+  AUTH_FILE_INVALID_JSON_OBJECT_ERROR,
+  isAuthFileInvalidJsonObjectError,
+} from '@/external/services/api/authFilesExtension';
 
 export const deleteFileByName = async (name: string): Promise<{
   status: 'ok';

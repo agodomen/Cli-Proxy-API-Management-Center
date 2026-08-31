@@ -1,4 +1,4 @@
-import { providersApi } from '@/services/api';
+import { providersApi } from '@/external/services/api/providersExt';
 import type { OpenAIProviderConfig } from '@/types';
 
 /**

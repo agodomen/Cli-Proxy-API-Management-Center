@@ -4,6 +4,7 @@
 
 - [项目总结](./summary.md)
 - [CLIProxyAPI 双引擎集成](./cliproxyapi-dual-engine.md)
+- [后端二次开发架构优化方案](./backend-extension-architecture.md)
 - [社区代码合并约定](./community-sync.md)
 - [Monorepo 目录迁移实施计划](./monorepo-migration-plan.md)
 - [异步探测与密钥运营](./async-probe-key-operations.md)

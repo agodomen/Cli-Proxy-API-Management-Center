@@ -315,14 +315,32 @@ func validatePluginStoreRequestURL(auth []AuthConfig, requestURL string, kind st
 	if parsed.User != nil {
 		return fmt.Errorf("plugin store url must not contain credentials")
 	}
-	// Runtime requests intentionally allow ephemeral signed download query
-	// parameters such as GitHub release CDN ?token=... values. Declared
-	// registry/manifest URLs still reject sensitive query keys via
-	// hasSensitiveQueryParameter so long-lived secrets are not stored.
+	if hasSensitiveQueryParameter(parsed) && !allowGitHubSignedArtifactURL(parsed, kind) {
+		return fmt.Errorf("plugin store url contains sensitive query parameter")
+	}
 	if strings.EqualFold(parsed.Scheme, "http") && !allowInsecurePluginStoreURL(auth, requestURL, kind) {
 		return fmt.Errorf("insecure plugin store url requires matching allow-insecure auth rule")
 	}
 	return nil
+}
+
+func allowGitHubSignedArtifactURL(parsed *url.URL, kind string) bool {
+	if parsed == nil || !strings.EqualFold(strings.TrimSpace(kind), RequestKindArtifact) {
+		return false
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	if host == "" || host == "api.github.com" {
+		return false
+	}
+	if strings.HasSuffix(host, ".githubusercontent.com") {
+		return true
+	}
+	switch host {
+	case "objects.githubusercontent.com", "release-assets.githubusercontent.com", "github-releases.githubusercontent.com":
+		return true
+	default:
+		return false
+	}
 }
 
 func allowInsecurePluginStoreURL(auth []AuthConfig, requestURL string, kind string) bool {

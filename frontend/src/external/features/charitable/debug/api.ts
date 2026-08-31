@@ -9,7 +9,7 @@ import type {
 
 function buildCharitableBase(base: string): string {
   const normalized = normalizeApiBase(base).replace(/\/+$/, '');
-  return `${normalized}/api/charitable`;
+  return `${normalized}/v0/cpamc/charitable`;
 }
 
 const authConfig = (managementKey?: string) =>

@@ -7,7 +7,7 @@ import { HeaderInputList } from '@/external/components/ui/HeaderInputList';
 import { Input } from '@/components/ui/Input';
 import { ModelInputList } from '@/external/components/ui/ModelInputList';
 import { Select } from '@/components/ui/Select';
-import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
+import { SecondaryScreenShell } from '@/external/components/common/SecondaryScreenShell';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useNotificationStore } from '@/stores';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';

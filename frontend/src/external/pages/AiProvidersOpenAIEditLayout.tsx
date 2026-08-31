@@ -3,18 +3,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { providersApi } from '@/services/api';
+import { providersApi } from '@/external/services/api/providersExt';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import { useOpenAIEditDraftStore } from '@/external/stores/useOpenAIEditDraftStore';
 import { entriesToModels, modelsToEntries } from '@/external/components/ui/modelInputListUtils';
 import type { ApiKeyEntry } from '@/external/types/provider'; import type { OpenAIProviderConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import { normalizeAuthIndex } from '@/utils/authIndex';
-import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
-import { areKeyValueEntriesEqual, areModelEntriesEqual } from '@/utils/compare';
+import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/external/utils/headers';
+import { areKeyValueEntriesEqual, areModelEntriesEqual } from '@/external/utils/compare';
 import { buildApiKeyEntry } from '@/external/components/providers/utils';
 import type { ModelEntry, OpenAIFormState } from '@/external/components/providers/types';
 import type { KeyTestStatus, OpenAIEditBaseline } from '@/external/stores/useOpenAIEditDraftStore';
+import { fetchConfigSection } from '@/external/utils/configSection';
+
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -165,7 +167,7 @@ export function AiProvidersOpenAIEditLayout() {
     () => config?.openaiCompatibility ?? []
   );
   const [loading, setLoading] = useState(
-    () => !isCacheValid('openai-compatibility')
+    () => !isCacheValid()
   );
   const [saving, setSaving] = useState(false);
 
@@ -259,12 +261,12 @@ export function AiProvidersOpenAIEditLayout() {
       navigate(-1);
       return;
     }
-    navigate('/ai-providers', { replace: true });
+    navigate('/auth/providers', { replace: true });
   }, [location.state, navigate]);
 
   useEffect(() => {
     let cancelled = false;
-    const hasValidCache = isCacheValid('openai-compatibility');
+    const hasValidCache = isCacheValid();
     if (!hasValidCache) {
       setLoading(true);
     }
@@ -280,7 +282,7 @@ export function AiProvidersOpenAIEditLayout() {
       .catch(async (err: unknown) => {
         if (cancelled) return;
         try {
-          const fallback = await fetchConfig('openai-compatibility');
+          const fallback = await fetchConfigSection('openai-compatibility');
           if (cancelled) return;
           setProviders(Array.isArray(fallback) ? (fallback as OpenAIProviderConfig[]) : []);
         } catch {
@@ -440,9 +442,9 @@ export function AiProvidersOpenAIEditLayout() {
       isModelsDirty);
   const editorRootPath = useMemo(() => {
     if (hasIndexParam) {
-      return `/ai-providers/openai/${params.index ?? ''}`;
+      return `/auth/providers/openai/${params.index ?? ''}`;
     }
-    return '/ai-providers/openai/new';
+    return '/auth/providers/openai/new';
   }, [hasIndexParam, params.index]);
   const canGuard = !resolvedLoading && !saving && !invalidIndexParam && !invalidIndex;
 

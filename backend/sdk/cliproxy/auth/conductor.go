@@ -135,8 +135,9 @@ type Manager struct {
 	// oauthModelAlias stores global OAuth model alias mappings (alias -> upstream name) keyed by channel.
 	oauthModelAlias atomic.Value
 
-	// apiKeyModelRouting atomically publishes per-auth aliases and configured capabilities.
-	apiKeyModelRouting atomic.Value
+	// apiKeyModelAlias caches resolved model alias mappings for API-key auths.
+	// Keyed by auth.ID, value is alias(lower) -> upstream model (including suffix).
+	apiKeyModelAlias atomic.Value
 
 	// modelPoolOffsets tracks per-auth alias pool rotation state.
 	modelPoolOffsets map[string]int
@@ -180,7 +181,7 @@ func NewManager(store Store, selector Selector, hook Hook) *Manager {
 	}
 	// atomic.Value requires non-nil initial value.
 	manager.runtimeConfig.Store(&internalconfig.Config{})
-	manager.apiKeyModelRouting.Store(&apiKeyModelRoutingSnapshot{config: &internalconfig.Config{}})
+	manager.apiKeyModelAlias.Store(apiKeyModelAliasTable(nil))
 	defaultInFlightConfig, errInFlightConfig := HomeInFlightPublisherConfigFromConfig(internalconfig.DefaultCredentialInFlightConfig())
 	if errInFlightConfig == nil {
 		manager.ApplyHomeInFlightPublisherConfig(defaultInFlightConfig)

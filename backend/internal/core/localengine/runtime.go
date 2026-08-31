@@ -12,7 +12,9 @@ import (
 	"strings"
 	"sync"
 
+	cliproxyapi "github.com/router-for-me/CLIProxyAPI/v7/internal/api"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/pluginhost"
 	cliproxy "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy"
 	cliproxyconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 	"gopkg.in/yaml.v3"
@@ -21,6 +23,7 @@ import (
 // Runtime owns the CLIProxyAPI service embedded in the cpamc process.
 type Runtime struct {
 	service    *cliproxy.Service
+	pluginHost *pluginhost.Host
 	address    string
 	configPath string
 	mu         sync.RWMutex
@@ -37,8 +40,22 @@ type Status struct {
 	LastError  string `json:"lastError,omitempty"`
 }
 
+// Option configures the local engine runtime during construction.
+type Option func(*runtimeConfig)
+
+type runtimeConfig struct {
+	serverOptions []cliproxyapi.ServerOption
+}
+
+// WithServerOptions appends server configuration options used during construction.
+func WithServerOptions(opts ...cliproxyapi.ServerOption) Option {
+	return func(rc *runtimeConfig) {
+		rc.serverOptions = append(rc.serverOptions, opts...)
+	}
+}
+
 // New builds the embedded CLIProxyAPI runtime. A disabled configuration returns nil.
-func New(cfg config.LocalEngineConfig, ingestor UsageEventIngestor) (*Runtime, error) {
+func New(cfg config.LocalEngineConfig, ingestor UsageEventIngestor, opts ...Option) (*Runtime, error) {
 	if !cfg.Enabled {
 		return nil, nil
 	}
@@ -70,10 +87,17 @@ func New(cfg config.LocalEngineConfig, ingestor UsageEventIngestor) (*Runtime, e
 		return nil, fmt.Errorf("resolve local engine auth directory: %w", err)
 	}
 
-	service, err := cliproxy.NewBuilder().
+	rc := &runtimeConfig{}
+	for _, opt := range opts {
+		opt(rc)
+	}
+	pluginHost := pluginhost.New()
+	builder := cliproxy.NewBuilder().
 		WithConfig(upstreamConfig).
 		WithConfigPath(cfg.ConfigPath).
-		Build()
+		WithPluginHost(pluginHost)
+	builder = builder.WithServerOptions(rc.serverOptions...)
+	service, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("build local engine: %w", err)
 	}
@@ -83,9 +107,20 @@ func New(cfg config.LocalEngineConfig, ingestor UsageEventIngestor) (*Runtime, e
 
 	return &Runtime{
 		service:    service,
+		pluginHost: pluginHost,
 		address:    formatAddress(upstreamConfig.Host, upstreamConfig.Port),
 		configPath: cfg.ConfigPath,
 	}, nil
+}
+
+// PluginRegistered reports whether the embedded runtime has activated a plugin.
+func (runtime *Runtime) PluginRegistered(id string) bool {
+	return runtime != nil && runtime.pluginHost != nil && runtime.pluginHost.PluginRegistered(id)
+}
+
+// PluginBusy reports whether a plugin is loaded or currently loading.
+func (runtime *Runtime) PluginBusy(id string) bool {
+	return runtime != nil && runtime.pluginHost != nil && runtime.pluginHost.PluginBusy(id)
 }
 
 // Run starts the embedded server and blocks until cancellation or failure.

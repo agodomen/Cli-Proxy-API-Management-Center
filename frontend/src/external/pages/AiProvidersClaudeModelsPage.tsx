@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
-import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
+import { SecondaryScreenShell } from '@/external/components/common/SecondaryScreenShell';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { modelsApi } from '@/services/api';
 import type { ModelInfo } from '@/utils/models';
@@ -14,6 +14,7 @@ import { buildHeaderObject } from '@/utils/headers';
 import type { ClaudeEditOutletContext } from './AiProvidersClaudeEditLayout';
 import styles from './AiProvidersPage.module.scss';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
+import { modelsApiExt } from '@/external/services/api/modelsExtension';
 
 const getErrorMessage = (err: unknown) => {
   if (err instanceof Error) return err.message;
@@ -96,7 +97,7 @@ export function AiProvidersClaudeModelsPage() {
   useEffect(() => {
     if (initialLoading) return;
 
-    const nextEndpoint = modelsApi.buildClaudeModelsEndpoint(form.baseUrl ?? '');
+    const nextEndpoint = modelsApiExt.buildClaudeModelsEndpoint(form.baseUrl ?? '');
     setEndpoint(nextEndpoint);
     setModels([]);
     setSearch('');

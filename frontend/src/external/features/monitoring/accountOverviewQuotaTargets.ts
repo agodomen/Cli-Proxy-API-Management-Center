@@ -1,16 +1,14 @@
 import type { AuthFileItem } from '@/types';
-import {
-  isAntigravityFile,
+import {  isAntigravityFile,
   isClaudeFile,
   isCodexFile,
   isDisabledAuthFile,
   isKimiFile,
-  isRuntimeOnlyAuthFile,
   isXaiFile,
   normalizeAuthIndex,
   resolveCodexChatgptAccountId,
-  resolveCodexPlanType,
-} from '@/utils/quota';
+  resolveCodexPlanType,} from '@/utils/quota';
+import { isRuntimeOnlyAuthFile } from '@/external/utils/quota/quotaExtension';
 import { isGeminiCliFile } from '@/external/utils/quota/adapters/geminiCli';
 type QuotaType = 'antigravity' | 'claude' | 'codex' | 'gemini-cli' | 'kimi' | 'xai';
 import type { MonitoringAccountAuthState } from './accountOverviewState';

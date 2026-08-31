@@ -21,10 +21,13 @@ import (
 	"sync"
 	"time"
 
+	communityconfig "github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/charitable"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/cluster"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/collector"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/probe"
+	coreproxy "github.com/router-for-me/CLIProxyAPI/v7/internal/core/proxy"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/store"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/usage"
 )
@@ -40,11 +43,18 @@ type Server struct {
 	charitableMux     http.Handler
 	probeManager      *probe.Manager
 	localEngineStatus func() any
+	pluginRegistered  func(string) bool
+	pluginBusy        func(string) bool
+	clusterHandler    *cluster.Handler
 }
 
 type setupSource string
 
 const serviceID = "cpamc"
+
+// cpamcBase is the root path for all secondary-development routes.
+// Community /v0/management/* routes are proxied to CPA and never collide.
+const cpamcBase = "/v0/cpamc"
 
 const (
 	setupSourceNone setupSource = ""
@@ -110,6 +120,9 @@ func New(cfg config.Config, store *store.Store, collector *collector.Manager) *S
 		if s.probeManager != nil {
 			collector.SetUsageEventSink(s.probeManager)
 		}
+		if err := cluster.EnsureTables(store.DB()); err == nil {
+			s.clusterHandler = cluster.NewHandler(cluster.NewStore(store.DB()))
+		}
 	}
 	return s
 }
@@ -131,22 +144,48 @@ func (s *Server) SetLocalEngineStatus(status func() any) {
 	s.localEngineStatus = status
 }
 
+// SetLocalPluginRuntime connects read-only plugin runtime state to the core
+// plugin-store API without coupling community handlers to core storage.
+func (s *Server) SetLocalPluginRuntime(registered func(string) bool, busy func(string) bool) {
+	s.pluginRegistered = registered
+	s.pluginBusy = busy
+}
+
 func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		s.writeCORS(w, r)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/v0/management/model-prices") {
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/model-prices") && !strings.HasPrefix(r.URL.Path, cpamcBase+"/model-price-proxy") {
 		s.withCORS(s.handleModelPrices)(w, r)
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/v0/management/api-key-aliases") {
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/model-price-proxy") {
+		s.withCORS(s.handleModelPriceProxy)(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/plugin-proxy") {
+		s.withCORS(s.handlePluginProxy)(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/plugin-store") {
+		s.withCORS(s.handlePluginStore)(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/cluster") {
+		if !s.authorizeIfConfigured(w, r) {
+			return
+		}
+		s.withCORS(s.clusterHandler.ServeHTTP)(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/api-key-aliases") {
 		s.withCORS(s.handleAPIKeyAliases)(w, r)
 		return
 	}
 	cleanUsagePath := strings.TrimRight(r.URL.Path, "/")
-	if cleanUsagePath == "/v0/management/usage" || strings.HasPrefix(cleanUsagePath, "/v0/management/usage/") {
+	if cleanUsagePath == cpamcBase+"/usage" || strings.HasPrefix(cleanUsagePath, cpamcBase+"/usage/") {
 		s.withCORS(s.handleUsage)(w, r)
 		return
 	}
@@ -154,16 +193,20 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 		s.withCORS(s.handleProxy)(w, r)
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/api/data-cleanup") {
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/data-cleanup") {
 		s.withCORS(s.handleDataCleanup)(w, r)
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/api/common-params") {
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/common-params") {
 		s.withCORS(s.handleCommonParams)(w, r)
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/api/charitable/") {
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/charitable/") {
 		s.withCORS(s.handleCharitable)(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/meta-api") {
+		s.withCORS(s.handleMetaAPI)(w, r)
 		return
 	}
 	if isModelListProxyPath(r.URL.Path) {
@@ -469,14 +512,14 @@ func (s *Server) handleModelPrices(w http.ResponseWriter, r *http.Request) {
 
 	path := strings.TrimRight(r.URL.Path, "/")
 	switch {
-	case path == "/v0/management/model-prices" && r.Method == http.MethodGet:
+	case path == cpamcBase+"/model-prices" && r.Method == http.MethodGet:
 		prices, err := s.store.LoadModelPrices(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"prices": prices})
-	case path == "/v0/management/model-prices" && r.Method == http.MethodPut:
+	case path == cpamcBase+"/model-prices" && r.Method == http.MethodPut:
 		var req modelPricesRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, err)
@@ -496,14 +539,14 @@ func (s *Server) handleModelPrices(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"prices": prices})
-	case path == "/v0/management/model-prices/sync" && r.Method == http.MethodPost:
+	case path == cpamcBase+"/model-prices/sync" && r.Method == http.MethodPost:
 		var req modelPricesSyncRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		proxyURL := s.resolveCPAProxyURL(r.Context())
-		remotePrices, skipped, err := fetchLiteLLMModelPrices(r.Context(), proxyURL)
+		resolution := s.resolveModelPriceProxyResolution(r.Context())
+		remotePrices, skipped, err := fetchLiteLLMModelPrices(r.Context(), resolution)
 		if err != nil {
 			writeError(w, http.StatusBadGateway, err)
 			return
@@ -537,7 +580,7 @@ func (s *Server) handleAPIKeyAliases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := strings.TrimRight(r.URL.Path, "/")
-	const basePath = "/v0/management/api-key-aliases"
+	const basePath = cpamcBase+"/api-key-aliases"
 	switch {
 	case path == basePath && r.Method == http.MethodGet:
 		aliases, err := s.store.LoadAPIKeyAliases(r.Context())
@@ -581,6 +624,13 @@ func (s *Server) handleAPIKeyAliases(w http.ResponseWriter, r *http.Request) {
 // resolveCPAProxyURL 解析 CPA 全局代理 URL；任何步骤失败都返回空字符串，
 // 让上游同步流程退化为直连。
 func (s *Server) resolveCPAProxyURL(ctx context.Context) string {
+	if s.cfg.LocalEngine.Enabled && strings.TrimSpace(s.cfg.LocalEngine.ConfigPath) != "" {
+		if cfg, err := communityconfig.LoadConfig(s.cfg.LocalEngine.ConfigPath); err == nil {
+			if proxyURL := strings.TrimSpace(cfg.ProxyURL); proxyURL != "" {
+				return proxyURL
+			}
+		}
+	}
 	setup, ok, err := s.resolveSetup(ctx)
 	if err != nil || !ok {
 		return ""
@@ -595,23 +645,24 @@ func (s *Server) resolveCPAProxyURL(ctx context.Context) string {
 	return value
 }
 
-func fetchLiteLLMModelPrices(ctx context.Context, proxyURL string) (map[string]store.ModelPrice, int, error) {
-	if strings.TrimSpace(proxyURL) != "" {
-		prices, skipped, err := doFetchLiteLLMModelPrices(ctx, proxyURL)
+func fetchLiteLLMModelPrices(ctx context.Context, resolution coreproxy.Resolution) (map[string]store.ModelPrice, int, error) {
+	if resolution.ProxyURL != "" || resolution.AcceleratorBase != "" {
+		prices, skipped, err := doFetchLiteLLMModelPrices(ctx, resolution)
 		if err == nil {
 			return prices, skipped, nil
 		}
-		// 代理失败时回退直连，避免代理临时不可用阻塞同步。
+		// 代理/加速器失败时回退直连，避免临时不可用阻塞同步。
 	}
-	return doFetchLiteLLMModelPrices(ctx, "")
+	return doFetchLiteLLMModelPrices(ctx, coreproxy.Resolution{})
 }
 
-func doFetchLiteLLMModelPrices(ctx context.Context, proxyURL string) (map[string]store.ModelPrice, int, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, modelPriceSyncURL, nil)
+func doFetchLiteLLMModelPrices(ctx context.Context, resolution coreproxy.Resolution) (map[string]store.ModelPrice, int, error) {
+	fetchURL := coreproxy.RewriteAcceleratorURL(resolution.AcceleratorBase, modelPriceSyncURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fetchURL, nil)
 	if err != nil {
 		return nil, 0, err
 	}
-	client := newHTTPClientWithProxy(proxyURL, 30*time.Second)
+	client := coreproxy.BuildHTTPClient(resolution, 30*time.Second)
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, 0, err
@@ -669,26 +720,6 @@ func doFetchLiteLLMModelPrices(ctx context.Context, proxyURL string) (map[string
 		}
 	}
 	return prices, skipped, nil
-}
-
-func newHTTPClientWithProxy(proxyURL string, timeout time.Duration) *http.Client {
-	client := &http.Client{Timeout: timeout}
-	trimmed := strings.TrimSpace(proxyURL)
-	if trimmed == "" {
-		return client
-	}
-	parsed, err := url.Parse(trimmed)
-	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
-		return client
-	}
-	base, ok := http.DefaultTransport.(*http.Transport)
-	if !ok {
-		return client
-	}
-	transport := base.Clone()
-	transport.Proxy = http.ProxyURL(parsed)
-	client.Transport = transport
-	return client
 }
 
 type proxyCacheEntry struct {
@@ -1232,7 +1263,7 @@ func (s *Server) handleDataCleanup(w http.ResponseWriter, r *http.Request) {
 	}
 	cleanPath := strings.TrimRight(r.URL.Path, "/")
 	switch {
-	case cleanPath == "/api/data-cleanup/tables" && r.Method == http.MethodGet:
+	case cleanPath == cpamcBase+"/data-cleanup/tables" && r.Method == http.MethodGet:
 		tables, err := s.store.ListCleanupTables(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
@@ -1244,14 +1275,14 @@ func (s *Server) handleDataCleanup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"tables": tables, "settings": settings})
-	case cleanPath == "/api/data-cleanup/settings" && r.Method == http.MethodGet:
+	case cleanPath == cpamcBase+"/data-cleanup/settings" && r.Method == http.MethodGet:
 		settings, err := s.store.LoadCleanupSettings(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
 			return
 		}
 		writeJSON(w, http.StatusOK, settings)
-	case cleanPath == "/api/data-cleanup/settings" && r.Method == http.MethodPut:
+	case cleanPath == cpamcBase+"/data-cleanup/settings" && r.Method == http.MethodPut:
 		var req store.CleanupSettings
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, err)
@@ -1263,7 +1294,7 @@ func (s *Server) handleDataCleanup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, http.StatusOK, saved)
-	case cleanPath == "/api/data-cleanup/purge" && r.Method == http.MethodPost:
+	case cleanPath == cpamcBase+"/data-cleanup/purge" && r.Method == http.MethodPost:
 		var req store.CleanupRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, err)
@@ -1299,7 +1330,7 @@ func (s *Server) handleDataCleanup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCharitable(w http.ResponseWriter, r *http.Request) {
-	if !s.authorizeIfConfigured(w, r) {
+	if !isPublicClashSubscriptionRequest(r) && !s.authorizeIfConfigured(w, r) {
 		return
 	}
 	if s.charitableMux == nil {
@@ -1307,6 +1338,12 @@ func (s *Server) handleCharitable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.charitableMux.ServeHTTP(w, r)
+}
+
+var publicClashSubscriptionPath = regexp.MustCompile(`^` + cpamcBase + `/charitable/subscriptions/[0-9a-f]{48}/clash/?$`)
+
+func isPublicClashSubscriptionRequest(r *http.Request) bool {
+	return r.Method == http.MethodGet && publicClashSubscriptionPath.MatchString(r.URL.Path)
 }
 
 func (s *Server) handleModelListProxy(w http.ResponseWriter, r *http.Request) {

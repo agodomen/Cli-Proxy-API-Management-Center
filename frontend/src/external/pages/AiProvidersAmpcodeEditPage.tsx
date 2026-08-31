@@ -8,14 +8,14 @@ import { ModelInputList } from '@/external/components/ui/ModelInputList';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
+import { SecondaryScreenShell } from '@/external/components/common/SecondaryScreenShell';
 import { ampcodeApi } from '@/external/services/api/ampcode';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { AmpcodeConfig } from '@/external/types/ampcode';
 import type { ExternalConfig } from '@/external/types/config';
 import type { RawConfigSection } from '@/types';
 import { maskApiKey } from '@/utils/format';
-import { areStringArraysEqual } from '@/utils/compare';
+import { areStringArraysEqual } from '@/external/utils/compare';
 import {
   buildAmpcodeFormState,
   entriesToAmpcodeMappings,
@@ -119,7 +119,7 @@ export function AiProvidersAmpcodeEditPage() {
       navigate(-1);
       return;
     }
-    navigate('/ai-providers', { replace: true });
+    navigate('/auth/providers', { replace: true });
   }, [location.state, navigate]);
 
   const swipeRef = useEdgeSwipeBack({ onBack: handleBack });

@@ -225,8 +225,8 @@ attemptLoop:
 					}
 				}
 				if errClear := clearAntigravityReasoningReplayOnInvalidSignature(ctx, replayScope, httpResp.StatusCode, bodyBytes); errClear != nil {
-					// Report the upstream failure rather than the cleanup failure.
-					logAntigravityReasoningReplayDegraded(replayScope, "invalidate", errClear)
+					err = errClear
+					return nil, err
 				}
 				err = newAntigravityStatusErr(httpResp.StatusCode, bodyBytes)
 				return nil, err

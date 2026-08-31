@@ -1,0 +1,97 @@
+name: Backend
+
+on:
+  push:
+    branches: [main, release]
+    paths:
+      - 'backend/**'
+      - 'bin/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'bin/**'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+# 后端此前没有任何 CI。本工作流是 docs/architecture/backend-extension-architecture.md
+# Phase 0 的门禁：编译 + 二开测试 + 上游镜像漂移 + 导入边界棘轮。
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      # 整个模块必须可编译：社区同步后最常见的失败是 internal/core 引用的上游
+      # 符号被重构，这一步能立刻抓到。
+      - name: Build all packages
+        working-directory: backend
+        env:
+          CGO_ENABLED: '1'
+        run: go build ./...
+
+      # 两个发布入口单独构建，确保 -ldflags 注入点和 embed 资源都在。
+      - name: Build release entrypoints
+        working-directory: backend
+        env:
+          CGO_ENABLED: '1'
+        run: go build -o /tmp/cpamc ./cmd/cpamc && go build -o /tmp/cli-proxy-api ./cmd/server
+
+      - name: Vet secondary-development packages
+        working-directory: backend
+        run: go vet ./internal/core/... ./cmd/cpamc/...
+
+      # 只跑二开测试。上游自带测试由社区 CI 负责，仅在同步时本地跑一次，
+      # 避免把上游的耗时/联网用例带进每次 PR。
+      - name: Test secondary-development packages
+        working-directory: backend
+        run: go test ./internal/core/... ./cmd/cpamc/...
+
+  gates:
+    name: Upstream boundary gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read upstream pin
+        id: pin
+        run: |
+          commit="$(sed -n 's/^commit=//p' backend/.cliproxyapi-upstream-ref | head -n 1)"
+          if [ -z "$commit" ]; then
+            echo "无法从 backend/.cliproxyapi-upstream-ref 读取 commit=" >&2
+            exit 1
+          fi
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      # 漂移检查只用 ls-tree 读取 blob SHA，不需要文件内容，因此 blobless
+      # 部分克隆足够，且远快于完整克隆。
+      - name: Fetch upstream tree at pin
+        run: |
+          set -euo pipefail
+          commit='${{ steps.pin.outputs.commit }}'
+          git init --quiet /tmp/CLIProxyAPI
+          git -C /tmp/CLIProxyAPI remote add origin https://github.com/router-for-me/CLIProxyAPI.git
+          if ! git -C /tmp/CLIProxyAPI fetch --quiet --filter=blob:none --depth 1 origin "$commit"; then
+            echo "按 SHA 拉取失败，回退为拉取全部分支与 tag"
+            git -C /tmp/CLIProxyAPI fetch --quiet --filter=blob:none --tags origin '+refs/heads/*:refs/remotes/origin/*'
+          fi
+          git -C /tmp/CLIProxyAPI cat-file -e "${commit}^{commit}"
+
+      - name: Check upstream mirror drift
+        env:
+          CLIPROXYAPI_SOURCE: /tmp/CLIProxyAPI
+        run: bin/check-upstream-drift.sh --verbose
+
+      - name: Check import boundary
+        run: bin/check-import-boundary.sh
+
+      # run.gen.go 必须与上游入口一致。不一致意味着有人手改了生成件，或同步后
+      # 忘了重新生成。
+      - name: Check generated community CLI mirror
+        run: bin/gen-cli-mirror.sh --check

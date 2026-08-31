@@ -14,7 +14,7 @@ if [[ -z "${SOURCE_DIR}" ]]; then
   SOURCE_DIR="${SOURCE_DIR:-/home/gwd/projects/github/CLIProxyAPI}"
 fi
 REF="HEAD"
-LOCAL_MODULE="github.com/agodomen/Cli-Proxy-API-Management-Center/backend"
+LOCAL_MODULE="github.com/router-for-me/CLIProxyAPI/v7"
 
 usage() {
   cat <<'EOF'

@@ -21,10 +21,11 @@ import {
   IconRefreshCw,
   IconSearch,
 } from '@/components/ui/icons';
-import { VisualConfigEditor } from '@/components/config/VisualConfigEditor';
+import { VisualConfigEditor } from '@/external/components/config/VisualConfigEditor';
 import { DiffModal } from '@/components/config/DiffModal';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useVisualConfig } from '@/hooks/useVisualConfig';
+import { useVisualConfig } from '@/external/hooks/useVisualConfig';
+import { fetchConfigSection } from '@/external/utils/configSection';
 import {
   useNotificationStore,
   useAuthStore,
@@ -35,6 +36,7 @@ import {
 import { useUsageServiceStore } from '@/external/stores/useUsageServiceStore';
 import { configFileApi } from '@/services/api/configFile';
 import {
+
   getUsageServiceErrorCode,
   isUsageServiceId,
   normalizeUsageServiceBase,
@@ -52,9 +54,16 @@ import {
   type ProbeConfig,
 } from '@/external/features/charitable/probe/api';
 import { DataCleanupPanel } from './DataCleanupPanel';
+import {
+  modelPriceProxyApi,
+  globalProxyUrlApi,
+  type ProxyStatus,
+  type ScopedProxyConfig,
+} from '@/external/services/api/proxyConfig';
 import styles from './SystemConfigPage.module.scss';
 
-type ConfigEditorTab = 'visual' | 'source' | 'manager' | 'gateway' | 'datasource' | 'probe' | 'commonParams' | 'cleanup';
+
+type ConfigEditorTab = 'visual' | 'source' | 'manager' | 'gateway' | 'datasource' | 'probe' | 'commonParams' | 'proxy' | 'cleanup';
 
 const MANAGER_COLLECTOR_DEFAULT = {
   enabled: true,
@@ -162,7 +171,8 @@ export function SystemConfigPage() {
       saved === 'gateway' ||
       saved === 'datasource' ||
       saved === 'probe' ||
-      saved === 'commonParams'
+      saved === 'commonParams' ||
+      saved === 'proxy'
     ) {
       return saved;
     }
@@ -179,6 +189,15 @@ export function SystemConfigPage() {
   const [commonParamsSaving, setCommonParamsSaving] = useState(false);
   const [commonParamsDirty, setCommonParamsDirty] = useState(false);
   const [refreshingUaField, setRefreshingUaField] = useState<CommonParamsField | null>(null);
+  const [pluginProxy, setPluginProxy] = useState<ScopedProxyConfig>({ url: '', accelerator: '', status: 0 });
+  const [pluginProxyGlobalUrl, setPluginProxyGlobalUrl] = useState('');
+  const [pluginProxyEffective, setPluginProxyEffective] = useState('');
+  const [pluginProxySaving, setPluginProxySaving] = useState(false);
+  const [modelPriceProxy, setModelPriceProxy] = useState<ScopedProxyConfig>({ url: '', accelerator: '', status: 0 });
+  const [modelPriceProxyEffective, setModelPriceProxyEffective] = useState('');
+  const [modelPriceProxySaving, setModelPriceProxySaving] = useState(false);
+  const [globalProxyUrlValue, setGlobalProxyUrlValue] = useState('');
+  const [globalProxyUrlSaving, setGlobalProxyUrlSaving] = useState(false);
   const [diffModalOpen, setDiffModalOpen] = useState(false);
   const [serverYaml, setServerYaml] = useState('');
   const [mergedYaml, setMergedYaml] = useState('');
@@ -190,6 +209,8 @@ export function SystemConfigPage() {
   const [managerError, setManagerError] = useState('');
   const [managerDirty, setManagerDirty] = useState(false);
   const [managerServiceBase, setManagerServiceBase] = useState('');
+  const managerServiceBaseRef = useRef('');
+  managerServiceBaseRef.current = managerServiceBase;
   const [managerCpaBaseUrl, setManagerCpaBaseUrl] = useState('');
   const [managerRequestMonitoringEnabled, setManagerRequestMonitoringEnabled] = useState(true);
   const [panelHostedByUsageService, setPanelHostedByUsageService] = useState<boolean | null>(null);
@@ -228,16 +249,19 @@ export function SystemConfigPage() {
   const isProbeTab = activeTab === 'probe';
   const isCommonParamsTab = activeTab === 'commonParams';
   const isCleanupTab = activeTab === 'cleanup';
+  const isProxyTab = activeTab === 'proxy';
   const isDirty = isManagerTab
     ? managerDirty
     : isProbeTab
       ? false
       : isCommonParamsTab
         ? commonParamsDirty
-        : isCleanupTab
+        : isProxyTab
           ? false
-          : dirty || visualDirty;
-  const shouldRenderFloatingActions = isCurrentLayer && !isCleanupTab && !isProbeTab;
+          : isCleanupTab
+            ? false
+            : dirty || visualDirty;
+  const shouldRenderFloatingActions = isCurrentLayer && !isCleanupTab && !isProbeTab && !isProxyTab;
   const hasVisualModeError = !!visualParseError;
   const hasVisualValidationErrors =
     activeTab === 'visual' &&
@@ -346,9 +370,9 @@ export function SystemConfigPage() {
     if (panelHostedByUsageService) {
       return normalizeUsageServiceBase(detectedPanelBase);
     }
-    const preferred = managerServiceBase || (usageServiceEnabled && usageServiceBase ? usageServiceBase : '');
+    const preferred = managerServiceBaseRef.current || (usageServiceEnabled && usageServiceBase ? usageServiceBase : '');
     return normalizeUsageServiceBase(preferred || '');
-  }, [detectedPanelBase, managerServiceBase, panelHostedByUsageService, usageServiceBase, usageServiceEnabled]);
+  }, [detectedPanelBase, panelHostedByUsageService, usageServiceBase, usageServiceEnabled]);
 
   const syncUsageServiceBootstrap = useCallback(
     (serviceBase: string) => {
@@ -371,7 +395,7 @@ export function SystemConfigPage() {
       const nextConfig = response.config;
       const collector = nextConfig.collector ?? MANAGER_COLLECTOR_DEFAULT;
       const serviceBase =
-        nextConfig.externalUsageService?.serviceBase || fallbackBase || managerServiceBase;
+        nextConfig.externalUsageService?.serviceBase || fallbackBase || managerServiceBaseRef.current;
 
       setManagerConfig(nextConfig);
       setManagerConfigSource(response.source || '');
@@ -386,7 +410,7 @@ export function SystemConfigPage() {
       setManagerGatewayMode(normalizeGatewayMode(nextConfig.gateway?.mode || MANAGER_GATEWAY_DEFAULT.mode));
       setManagerDirty(false);
     },
-    [apiBase, managerServiceBase]
+    [apiBase]
   );
 
   const loadManagerConfig = useCallback(async () => {
@@ -517,6 +541,30 @@ export function SystemConfigPage() {
     void loadProbeServiceConfig();
   }, [activeTab, loadProbeServiceConfig]);
 
+  const loadProxyConfigs = useCallback(async () => {
+    try {
+      const { pluginProxyApi } = await import('@/external/services/api/pluginProxy');
+      const [pluginResp, modelPriceResp, globalUrl] = await Promise.all([
+        pluginProxyApi.get(),
+        modelPriceProxyApi.get(''),
+        globalProxyUrlApi.get(),
+      ]);
+      setPluginProxy(pluginResp.pluginProxy);
+      setPluginProxyGlobalUrl(pluginResp.proxyUrl);
+      setPluginProxyEffective(pluginResp.effective);
+      setModelPriceProxy(modelPriceResp.scoped);
+      setModelPriceProxyEffective(modelPriceResp.effective);
+      setGlobalProxyUrlValue(globalUrl);
+    } catch {
+      // proxy endpoints may be unsupported by some backends
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'proxy') return;
+    void loadProxyConfigs();
+  }, [activeTab, loadProxyConfigs]);
+
   const handleConfirmSave = async () => {
     setSaving(true);
     try {
@@ -536,7 +584,7 @@ export function SystemConfigPage() {
       // Keep the global config store in sync so sidebar / other pages reflect YAML changes immediately.
       try {
         useConfigStore.getState().clearCache();
-        await useConfigStore.getState().fetchConfig(undefined, true);
+        await fetchConfigSection(undefined, true);
       } catch (refreshError: unknown) {
         const message =
           refreshError instanceof Error
@@ -721,6 +769,85 @@ export function SystemConfigPage() {
       }
     },
     [apiBase, commonParamsForm, showNotification, t, updateCommonParamsField]
+  );
+
+  const proxyStatusOptions = useMemo(
+    () => [
+      { value: '0', label: t('config_management.proxy.mode_none'), title: t('config_management.proxy.mode_none_tip') },
+      { value: '2', label: t('config_management.proxy.mode_system'), title: t('config_management.proxy.mode_system_tip') },
+      { value: '1', label: t('config_management.proxy.mode_custom'), title: t('config_management.proxy.mode_custom_tip') },
+      { value: '3', label: t('config_management.proxy.mode_accelerator'), title: t('config_management.proxy.mode_accelerator_tip') },
+    ],
+    [t]
+  );
+
+  const handlePluginProxyStatusChange = useCallback(
+    async (value: string) => {
+      const status = (value === '1' ? 1 : value === '2' ? 2 : value === '3' ? 3 : 0) as ProxyStatus;
+      if (status === pluginProxy.status || pluginProxySaving) return;
+      setPluginProxySaving(true);
+      try {
+        const { pluginProxyApi } = await import('@/external/services/api/pluginProxy');
+        await pluginProxyApi.update({ status, url: pluginProxy.url, accelerator: pluginProxy.accelerator });
+        const resp = await pluginProxyApi.get();
+        setPluginProxy(resp.pluginProxy);
+        setPluginProxyGlobalUrl(resp.proxyUrl);
+        setPluginProxyEffective(resp.effective);
+        showNotification(t('config_management.proxy.save_success'), 'success');
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        showNotification(`${t('config_management.proxy.save_failed')}: ${message}`, 'error');
+      } finally {
+        setPluginProxySaving(false);
+      }
+    },
+    [pluginProxy, pluginProxySaving, showNotification, t]
+  );
+
+  const handleModelPriceProxyStatusChange = useCallback(
+    async (value: string) => {
+      const status = (value === '1' ? 1 : value === '2' ? 2 : value === '3' ? 3 : 0) as ProxyStatus;
+      if (status === modelPriceProxy.status || modelPriceProxySaving) return;
+      setModelPriceProxySaving(true);
+      try {
+        await modelPriceProxyApi.update({ status, url: modelPriceProxy.url, accelerator: modelPriceProxy.accelerator });
+        const resp = await modelPriceProxyApi.get('');
+        setModelPriceProxy(resp.scoped);
+        setModelPriceProxyEffective(resp.effective);
+        showNotification(t('config_management.proxy.save_success'), 'success');
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        showNotification(`${t('config_management.proxy.save_failed')}: ${message}`, 'error');
+      } finally {
+        setModelPriceProxySaving(false);
+      }
+    },
+    [modelPriceProxy, modelPriceProxySaving, showNotification, t]
+  );
+
+  const handleGlobalProxyUrlSave = useCallback(
+    async () => {
+      const trimmed = globalProxyUrlValue.trim();
+      if (globalProxyUrlSaving) return;
+      setGlobalProxyUrlSaving(true);
+      try {
+        if (trimmed) {
+          await globalProxyUrlApi.update(trimmed);
+        } else {
+          await globalProxyUrlApi.remove();
+        }
+        const fresh = await globalProxyUrlApi.get();
+        setGlobalProxyUrlValue(fresh);
+        await loadProxyConfigs();
+        showNotification(t('config_management.proxy.save_success'), 'success');
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        showNotification(`${t('config_management.proxy.save_failed')}: ${message}`, 'error');
+      } finally {
+        setGlobalProxyUrlSaving(false);
+      }
+    },
+    [globalProxyUrlSaving, globalProxyUrlValue, loadProxyConfigs, showNotification, t]
   );
 
   const handleCommonParamsSave = useCallback(async () => {
@@ -1085,6 +1212,10 @@ export function SystemConfigPage() {
       void loadProbeServiceConfig();
       return;
     }
+    if (activeTab === 'proxy') {
+      void loadProxyConfigs();
+      return;
+    }
     if (activeTab === 'cleanup') {
       return;
     }
@@ -1171,6 +1302,8 @@ export function SystemConfigPage() {
             'config_management.common_params.description',
             'Configure reusable User-Agent presets and refresh them to the latest CLI versions.'
           )
+      : activeTab === 'proxy'
+        ? t('config_management.proxy.description', 'Configure proxy and accelerator for plugin store, model price sync, and global outbound traffic.')
       : activeTab === 'cleanup'
         ? t('config_management.cleanup.description', 'Manually purge historical log tables from Usage Service SQLite.')
       : activeTab === 'visual'
@@ -1305,6 +1438,13 @@ export function SystemConfigPage() {
             </button>
             <button
               type="button"
+              className={`${styles.tabItem} ${activeTab === 'proxy' ? styles.tabActive : ''}`}
+              onClick={() => handleTabChange('proxy')}
+            >
+              {t('config_management.tabs.proxy', 'Proxy')}
+            </button>
+            <button
+              type="button"
               className={`${styles.tabItem} ${activeTab === 'cleanup' ? styles.tabActive : ''}`}
               onClick={() => handleTabChange('cleanup')}
             >
@@ -1315,17 +1455,115 @@ export function SystemConfigPage() {
         </div>
 
         <div className={styles.content}>
-          {activeTab !== 'manager' && activeTab !== 'gateway' && activeTab !== 'datasource' && activeTab !== 'probe' && activeTab !== 'commonParams' && activeTab !== 'cleanup' && error && <div className="error-box">{error}</div>}
+          {activeTab !== 'manager' && activeTab !== 'gateway' && activeTab !== 'datasource' && activeTab !== 'probe' && activeTab !== 'commonParams' && activeTab !== 'proxy' && activeTab !== 'cleanup' && error && <div className="error-box">{error}</div>}
           {(activeTab === 'manager' || activeTab === 'gateway' || activeTab === 'datasource') && managerError && (
             <div className="error-box">{managerError}</div>
           )}
-          {activeTab !== 'manager' && activeTab !== 'gateway' && activeTab !== 'datasource' && activeTab !== 'probe' && activeTab !== 'commonParams' && activeTab !== 'cleanup' && !error && visualParseError && (
+          {activeTab !== 'manager' && activeTab !== 'gateway' && activeTab !== 'datasource' && activeTab !== 'probe' && activeTab !== 'commonParams' && activeTab !== 'proxy' && activeTab !== 'cleanup' && !error && visualParseError && (
             <div className="error-box">
               {t('config_management.visual_mode_unavailable_detail', { message: visualParseError })}
             </div>
           )}
 
-          {activeTab === 'cleanup' ? (
+          {activeTab === 'proxy' ? (
+            <div className={styles.managerConfigPanel}>
+              <div className={styles.managerConfigHeader}>
+                <div>
+                  <h2>{t('config_management.proxy.title')}</h2>
+                  <p>{t('config_management.proxy.description')}</p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void loadProxyConfigs()}
+                >
+                  {t('common.refresh')}
+                </Button>
+              </div>
+
+              <section className={styles.managerSection}>
+                <div className={styles.managerSectionHeader}>
+                  <div>
+                    <h3>{t('config_management.proxy.plugin_title')}</h3>
+                    <p>{t('config_management.proxy.plugin_hint')}</p>
+                  </div>
+                </div>
+                <div className={styles.managerReadonlyGrid}>
+                  <div>
+                    <span>{t('config_management.proxy.mode')}</span>
+                    <Select
+                      value={String(pluginProxy.status)}
+                      options={proxyStatusOptions}
+                      onChange={(v) => void handlePluginProxyStatusChange(v)}
+                      disabled={pluginProxySaving}
+                    />
+                  </div>
+                  {pluginProxyEffective && (
+                    <div>
+                      <span>{t('config_management.proxy.effective')}</span>
+                      <strong>{pluginProxyEffective}</strong>
+                    </div>
+                  )}
+                  {pluginProxy.status === 2 && pluginProxyGlobalUrl && (
+                    <div>
+                      <span>{t('config_management.proxy.global_proxy_url')}</span>
+                      <strong>{pluginProxyGlobalUrl}</strong>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className={styles.managerSection}>
+                <div className={styles.managerSectionHeader}>
+                  <div>
+                    <h3>{t('config_management.proxy.model_price_title')}</h3>
+                    <p>{t('config_management.proxy.model_price_hint')}</p>
+                  </div>
+                </div>
+                <div className={styles.managerReadonlyGrid}>
+                  <div>
+                    <span>{t('config_management.proxy.mode')}</span>
+                    <Select
+                      value={String(modelPriceProxy.status)}
+                      options={proxyStatusOptions}
+                      onChange={(v) => void handleModelPriceProxyStatusChange(v)}
+                      disabled={modelPriceProxySaving}
+                    />
+                  </div>
+                  {modelPriceProxyEffective && (
+                    <div>
+                      <span>{t('config_management.proxy.effective')}</span>
+                      <strong>{modelPriceProxyEffective}</strong>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className={styles.managerSection}>
+                <div className={styles.managerSectionHeader}>
+                  <div>
+                    <h3>{t('config_management.proxy.global_title')}</h3>
+                    <p>{t('config_management.proxy.global_hint')}</p>
+                  </div>
+                </div>
+                <Input
+                  label={t('config_management.proxy.global_proxy_url')}
+                  placeholder="socks5://127.0.0.1:1080"
+                  value={globalProxyUrlValue}
+                  onChange={(e) => setGlobalProxyUrlValue(e.target.value)}
+                  disabled={globalProxyUrlSaving}
+                  hint={t('config_management.proxy.global_hint')}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => void handleGlobalProxyUrlSave()}
+                  loading={globalProxyUrlSaving}
+                >
+                  {t('common.save')}
+                </Button>
+              </section>
+            </div>
+          ) : activeTab === 'cleanup' ? (
             <DataCleanupPanel
               serviceBase={managerServiceTarget}
               managementKey={managementKey || undefined}

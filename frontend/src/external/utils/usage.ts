@@ -9,6 +9,18 @@ export interface ModelPrice {
   prompt: number;
   completion: number;
   cache: number;
+  mode?: 'fixed' | 'composite';
+  mappings?: ModelPriceMapping[];
+  source?: string;
+  sourceModelId?: string;
+  rawJson?: string;
+  updatedAtMs?: number;
+  syncedAtMs?: number;
+}
+
+export interface ModelPriceMapping {
+  model: string;
+  coefficient: number;
 }
 
 export interface UsageTokens {
@@ -429,11 +441,16 @@ export function calculateCost(
   detail: Pick<UsageDetail, 'tokens' | '__modelName' | '__resolvedModel'>,
   modelPrices: Record<string, ModelPrice> | ModelPriceIndex
 ): number {
-  // Price preference: resolved upstream model (what the provider actually billed) → requested alias as fallback.
+  // Composite aliases represent an intentional blended rate. Fixed prices retain the historical
+  // resolved-upstream-first behavior and use the requested alias only as a fallback.
   const index = ensureModelPriceIndex(modelPrices);
   const resolvedModel = detail.__resolvedModel || '';
   const requestedModel = detail.__modelName || '';
-  const price = lookupModelPrice(index, resolvedModel) ?? lookupModelPrice(index, requestedModel);
+  const requestedPrice = lookupModelPrice(index, requestedModel);
+  const price =
+    requestedPrice?.mode === 'composite'
+      ? requestedPrice
+      : (lookupModelPrice(index, resolvedModel) ?? requestedPrice);
   if (!price) return 0;
 
   const inputTokens = Math.max(toFiniteNumber(detail.tokens.input_tokens), 0);

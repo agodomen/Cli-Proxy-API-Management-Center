@@ -10,18 +10,18 @@ import {
   CPA_BUILD_DATE_HEADER_KEYS,
   CPA_SUPPORT_PLUGIN_HEADER_KEYS,
   CPA_VERSION_HEADER_KEYS,
-  HOME_BUILD_DATE_HEADER_KEYS,
-  HOME_VERSION_HEADER_KEYS,
   REQUEST_TIMEOUT_MS,
   VERSION_HEADER_KEYS,
 } from '@/utils/constants';
-import { computeApiUrl } from '@/utils/connection';
-import { isRecord } from '@/utils/helpers';
-import type { ServerRuntimeKind } from '@/types';
+
+const CPAMC_API_PREFIX = '/v0/cpamc';
+import { computeApiUrl, normalizeApiBase } from '@/utils/connection';
+import { parseApiErrorResponse } from './apiError';
 
 class ApiClient {
   private instance: AxiosInstance;
   private apiBase: string = '';
+  private cpamcBase: string = '';
   private managementKey: string = '';
 
   constructor() {
@@ -40,6 +40,7 @@ class ApiClient {
    */
   setConfig(config: ApiClientConfig): void {
     this.apiBase = computeApiUrl(config.apiBase);
+    this.cpamcBase = normalizeApiBase(config.apiBase) + CPAMC_API_PREFIX;
     this.managementKey = config.managementKey;
 
     if (config.timeout) {
@@ -107,8 +108,10 @@ class ApiClient {
     // 请求拦截器
     this.instance.interceptors.request.use(
       (config) => {
-        // 设置 baseURL
-        config.baseURL = this.apiBase;
+        // 设置 baseURL（仅在调用方未显式指定时使用默认管理前缀）
+        if (!config.baseURL) {
+          config.baseURL = this.apiBase;
+        }
 
         // 添加认证头
         if (this.managementKey) {
@@ -124,22 +127,17 @@ class ApiClient {
     this.instance.interceptors.response.use(
       (response) => {
         const headers = response.headers as Record<string, string | undefined>;
-        const homeVersion = this.readHeader(headers, HOME_VERSION_HEADER_KEYS);
-        const homeBuildDate = this.readHeader(headers, HOME_BUILD_DATE_HEADER_KEYS);
         const cpaVersion = this.readHeader(headers, CPA_VERSION_HEADER_KEYS);
         const cpaBuildDate = this.readHeader(headers, CPA_BUILD_DATE_HEADER_KEYS);
-        const version = homeVersion || cpaVersion || this.readHeader(headers, VERSION_HEADER_KEYS);
-        const buildDate =
-          homeBuildDate || cpaBuildDate || this.readHeader(headers, BUILD_DATE_HEADER_KEYS);
+        const version = cpaVersion || this.readHeader(headers, VERSION_HEADER_KEYS);
+        const buildDate = cpaBuildDate || this.readHeader(headers, BUILD_DATE_HEADER_KEYS);
         const supportsPlugin = this.readBooleanHeader(headers, CPA_SUPPORT_PLUGIN_HEADER_KEYS);
-        const runtimeKind: ServerRuntimeKind | null =
-          homeVersion || homeBuildDate ? 'home' : cpaVersion || cpaBuildDate ? 'cpa' : null;
 
         // 触发版本更新事件（后续通过 store 处理）
-        if (version || buildDate || runtimeKind) {
+        if (version || buildDate) {
           window.dispatchEvent(
             new CustomEvent('server-version-update', {
-              detail: { version: version || null, buildDate: buildDate || null, runtimeKind },
+              detail: { version: version || null, buildDate: buildDate || null },
             })
           );
         }
@@ -163,20 +161,12 @@ class ApiClient {
   private handleError(error: unknown): ApiError {
     if (axios.isAxiosError(error)) {
       const responseData: unknown = error.response?.data;
-      const responseRecord = isRecord(responseData) ? responseData : null;
-      const errorValue = responseRecord?.error;
-      const message =
-        typeof errorValue === 'string'
-          ? errorValue
-          : isRecord(errorValue) && typeof errorValue.message === 'string'
-            ? errorValue.message
-            : typeof responseRecord?.message === 'string'
-              ? responseRecord.message
-              : error.message || 'Request failed';
-      const apiError = new Error(message) as ApiError;
+      const parsedError = parseApiErrorResponse(responseData, error.message);
+      const apiError = new Error(parsedError.message) as ApiError;
       apiError.name = 'ApiError';
       apiError.status = error.response?.status;
       apiError.code = error.code;
+      apiError.apiCode = parsedError.apiCode;
       apiError.details = responseData;
       apiError.data = responseData;
 
@@ -229,6 +219,128 @@ class ApiClient {
   async patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.instance.patch<T>(url, data, config);
     return response.data;
+  }
+
+  /**
+   * 面板自身 origin 派生的 CPAMC API 基地址。
+   * 管理面板由 CPAMC 后端直接提供（/management.html 嵌入部署）时，页面
+   * origin 就是 CPAMC 后端；而 apiBase 可能被配置为外部 CLIProxyAPI 地址
+   * （external-cpa 直连用法），该主机没有 /v0/cpamc/* 扩展路由。
+   */
+  private cpamcOriginBase(): string {
+    try {
+      const { protocol, host } = window.location;
+      if (protocol !== 'http:' && protocol !== 'https:') return '';
+      return normalizeApiBase(`${protocol}//${host}`) + CPAMC_API_PREFIX;
+    } catch {
+      return '';
+    }
+  }
+
+  private isApiNotFound(error: unknown): boolean {
+    return Boolean(error) && (error as ApiError).status === 404;
+  }
+
+  /**
+   * CPAMC 请求统一入口：先按 apiBase 派生地址请求；若返回 404（目标主机
+   * 没有 CPAMC 扩展路由，例如 apiBase 指向外部 CLIProxyAPI），且面板
+   * origin 可用且不同源，则改用面板 origin 重试一次。重试使用独立请求
+   * （不经过实例拦截器），其 401 作为普通错误抛出，避免触发全局登出。
+   */
+  private async cpamcRequest<T>(
+    method: 'get' | 'post' | 'put' | 'delete' | 'patch',
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig
+  ): Promise<T> {
+    try {
+      const response = await this.instance.request<T>({
+        ...config,
+        url,
+        method,
+        data,
+        baseURL: this.cpamcBase,
+      });
+      return response.data;
+    } catch (error) {
+      const fallbackBase = this.cpamcOriginBase();
+      if (!this.isApiNotFound(error) || !fallbackBase || fallbackBase === this.cpamcBase) {
+        throw error;
+      }
+      try {
+        const headers: Record<string, string> = {
+          ...((config?.headers as Record<string, string> | undefined) ?? {}),
+        };
+        if (this.managementKey) {
+          headers.Authorization = `Bearer ${this.managementKey}`;
+        }
+        const response = await axios.request<T>({
+          ...config,
+          url,
+          method,
+          data,
+          baseURL: fallbackBase,
+          headers,
+        });
+        return response.data;
+      } catch (fallbackError) {
+        throw this.cpamcFallbackError(fallbackError);
+      }
+    }
+  }
+
+  /**
+   * 将回退请求的错误转换为 ApiError，但不派发 unauthorized 事件，
+   * 使面板 origin 后端的 401 以普通错误形式呈现给调用方。
+   */
+  private cpamcFallbackError(error: unknown): ApiError {
+    if (axios.isAxiosError(error)) {
+      const responseData: unknown = error.response?.data;
+      const parsedError = parseApiErrorResponse(responseData, error.message);
+      const apiError = new Error(parsedError.message) as ApiError;
+      apiError.name = 'ApiError';
+      apiError.status = error.response?.status;
+      apiError.code = error.code;
+      apiError.apiCode = parsedError.apiCode;
+      apiError.details = responseData;
+      apiError.data = responseData;
+      return apiError;
+    }
+    const fallbackMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
+    const fallback = new Error(fallbackMessage) as ApiError;
+    fallback.name = 'ApiError';
+    return fallback;
+  }
+
+  async cpamcGet<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return this.cpamcRequest<T>('get', url, undefined, config);
+  }
+
+  async cpamcPost<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return this.cpamcRequest<T>('post', url, data, config);
+  }
+
+  async cpamcPut<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return this.cpamcRequest<T>('put', url, data, config);
+  }
+
+  async cpamcDelete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    return this.cpamcRequest<T>('delete', url, undefined, config);
+  }
+
+  async cpamcPatch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
+    return this.cpamcRequest<T>('patch', url, data, config);
+  }
+
+  async cpamcPostForm<T = unknown>(url: string, formData: FormData, config?: AxiosRequestConfig): Promise<T> {
+    return this.cpamcRequest<T>('post', url, formData, {
+      ...config,
+      headers: {
+        ...(config?.headers || {}),
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   }
 
   /**

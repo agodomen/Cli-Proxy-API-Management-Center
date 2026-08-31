@@ -29,6 +29,8 @@
 
 Docker 和本地开发均只启动 `cpamc`。本地引擎默认启用并监听 `18318`，配置保存在数据目录的 `cliproxyapi/config.yaml`。内置引擎的请求 usage 已直接写入当前 SQLite，并复用探测服务；凭证来源目前仍使用 CLIProxyAPI 配置和认证目录，后续再替换为 SQLite 只读适配器。
 
+插件商店代理属于管理中心二开配置，不写入社区 `config.yaml`。`plugin_proxy_v1` 保存在 SQLite settings 中，由 `:18317` 的 `/v0/cpamc/plugin-proxy*` 和 `/v0/cpamc/plugin-store*` 使用。系统代理模式只读本地引擎 `config.yaml` 的 `proxy-url`；插件注册与加载状态则通过 `localengine` 持有的 `pluginhost.Host` 只读桥接到 core HTTP API，社区 management handler 保持原样。
+
 ## 模块边界
 
 ```text
@@ -70,7 +72,7 @@ http://cpamc:18318/v1/chat/completions
 
 ## 上游参考
 
-初始融合基线为 `5afc0f1d5e9ed8d47809a1bd1f54834bc7e75375`。2026-07-24 已同步到社区提交 `285322cd97add6b21f60c267debec44fbec74060`（`v7.2.96`）；2026-07-27 再同步到 `27fc3169bb4eb0509e3aba7dde4ab80286b0ae65`（`v7.2.100`）。详细逐文件审计记录见 `backend/CLIPROXYAPI_UPSTREAM_CN.md`。 社区合并流程与裁决规则见 [社区代码合并约定](./community-sync.md)。 仓库目录权威挂载模型为 `frontend/` + `backend/`，细节见该文档。使用以下命令对比后续社区提交：
+初始融合基线为 `5afc0f1d5e9ed8d47809a1bd1f54834bc7e75375`。历史上曾同步 `v7.2.96` 与 `v7.2.100`；当前已在 2026-08-13 同步到 `c9417c8ae9b16fabc0386ca35d36f13bf8b1d678`（`v7.2.104`）。详细逐文件审计记录见 `backend/CLIPROXYAPI_UPSTREAM_CN.md`。社区合并流程与裁决规则见 [社区代码合并约定](./community-sync.md)。仓库目录权威挂载模型为 `frontend/` + `backend/`，细节见该文档。使用以下命令对比后续社区提交：
 
 ```bash
 bin/compare-cliproxyapi.sh \

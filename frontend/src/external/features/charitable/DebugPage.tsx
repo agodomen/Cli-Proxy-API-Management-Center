@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/useAuthStore';
 import { useNotificationStore } from '@/stores/useNotificationStore';
 import { getDebugSchema, listDebugDatabases, runDebugQuery } from './debug/api';
 import { ApiDebugPanel } from './debug/ApiDebugPanel';
+import { MetaApiPanel } from './debug/MetaApiPanel';
 import { EntryDock } from './debug/EntryDock';
 import { KeyDebugPanel } from './debug/KeyDebugPanel';
 import { ResultTable } from './debug/ResultTable';
@@ -253,7 +254,9 @@ export function DebugPage() {
               ? t('charitable.debug.workspaceSqlDesc')
               : workspace === 'api'
                 ? t('charitable.debug.workspaceApiDesc')
-                : t('charitable.debug.workspaceKeyDesc')}
+                : workspace === 'key'
+                  ? t('charitable.debug.workspaceKeyDesc')
+                  : t('charitable.debug.workspaceMetaDesc')}
           </p>
         </div>
       </div>
@@ -371,6 +374,10 @@ export function DebugPage() {
         <div className={styles.apiWorkspace}>
           <ApiDebugPanel />
         </div>
+      ) : workspace === 'meta' ? (
+        <div className={styles.apiWorkspace}>
+          <MetaApiPanel />
+        </div>
       ) : (
         <div className={styles.apiWorkspace}>
           <KeyDebugPanel />
@@ -384,6 +391,7 @@ export function DebugPage() {
           sql: t('charitable.debug.sqlEntry'),
           api: t('charitable.debug.apiEntry'),
           key: t('charitable.debug.keyEntry'),
+          meta: t('charitable.debug.metaEntry'),
           toolbar: t('charitable.debug.entryToolbar'),
         }}
       />

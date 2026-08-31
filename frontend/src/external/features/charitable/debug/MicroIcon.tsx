@@ -255,3 +255,16 @@ export function GlyphKey() {
     </>
   );
 }
+
+export function GlyphMeta() {
+  return (
+    <>
+      <Path d="M4 6h16" />
+      <Path d="M4 12h16" />
+      <Path d="M4 18h16" />
+      <Circle cx="8" cy="6" r="1.4" fill="currentColor" stroke="none" />
+      <Circle cx="8" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <Circle cx="8" cy="18" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  );
+}

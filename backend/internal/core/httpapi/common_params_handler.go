@@ -110,7 +110,7 @@ func (s *Server) handleCommonParams(w http.ResponseWriter, r *http.Request) {
 	}
 	cleanPath := strings.TrimRight(r.URL.Path, "/")
 
-	if cleanPath == "/api/common-params" && r.Method == http.MethodGet {
+	if cleanPath == cpamcBase+"/common-params" && r.Method == http.MethodGet {
 		raw, ok, err := s.store.LoadSetting(r.Context(), commonParamsSettingKey)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err)
@@ -129,7 +129,7 @@ func (s *Server) handleCommonParams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cleanPath == "/api/common-params" && r.Method == http.MethodPut {
+	if cleanPath == cpamcBase+"/common-params" && r.Method == http.MethodPut {
 		var req CommonParams
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, err)

@@ -210,100 +210,24 @@
   }
 }
 
-// ─── Plugin Proxy (inline in toolbar) ───────────────────
-
-.proxyControls {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-sm;
-  flex: 0 1 auto;
-  min-width: 0;
-  margin-left: 2px;
-  padding-left: 10px;
-  border-left: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
-}
-
-.proxyModeSelect {
-  flex: 0 0 auto;
-  width: 168px;
-
-  // Mirror secondary toolbar button surface, but keep the same box size as
-  // the default search input (padding 10px 12px / ~40px tall), not sm-compressed.
-  :global(button) {
-    height: auto;
-    min-height: 0;
-    padding: 10px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: $radius-md;
-    background-color: var(--bg-tertiary);
-    box-shadow: none;
-    color: var(--text-primary);
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.25;
-  }
-}
-
-.proxyUrlField {
-  // Same width behavior as the toolbar search field: flex-based, capped, not content-measured.
-  flex: 1 1 240px;
-  max-width: 480px;
-  min-width: 240px;
-
-  :global(.form-group) {
-    flex: 1 1 240px;
-    max-width: 480px;
-    width: 100%;
-    margin: 0;
-  }
-
-  :global(.input) {
-    width: 100%;
-    // Keep native .input metrics identical to the search field.
-  }
-
-  :global(.input:disabled),
-  :global(.input[readonly]) {
-    opacity: 1;
-    -webkit-text-fill-color: var(--text-primary);
-  }
-}
-
-.proxyStatus {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.proxyStatusOk {
-  color: var(--success-color, #2f9e44);
-}
-
-.proxyStatusError {
-  color: var(--danger-color);
-}
-
 // ─── Toolbar ────────────────────────────────────────────
 
 .toolbar {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
-  flex-wrap: wrap;
 
-  // Search field only (direct child form-group).
-  > :global(.form-group) {
-    flex: 1 1 240px;
+  :global(.form-group) {
+    flex: 1;
     max-width: 480px;
     margin: 0;
   }
 
-  // Keep search icon spacing only on the search input.
-  > :global(.form-group) :global(.input) {
+  :global(.input) {
     padding-right: 36px;
   }
 
-  > :global(.btn > span) {
+  :global(.btn > span) {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -313,24 +237,8 @@
     flex-direction: column;
     align-items: stretch;
 
-    > :global(.form-group) {
+    :global(.form-group) {
       max-width: none;
-      width: 100%;
-    }
-
-    .proxyControls {
-      width: 100%;
-      margin-left: 0;
-      padding-left: 0;
-      border-left: 0;
-      padding-top: 4px;
-    }
-
-    .proxyModeSelect,
-    .proxyUrlField {
-      width: 100%;
-      max-width: none;
-      flex: 1 1 auto;
     }
   }
 }
@@ -420,13 +328,17 @@
 }
 
 .cardHeader {
-  display: flex;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
   align-items: flex-start;
-  gap: $spacing-sm;
+  column-gap: $spacing-sm;
+  row-gap: 6px;
 }
 
 .logoBox {
   display: inline-flex;
+  grid-column: 1;
+  grid-row: 1;
   width: 40px;
   height: 40px;
   align-items: center;
@@ -447,7 +359,8 @@
 
 .cardTitleBlock {
   display: flex;
-  flex: 1;
+  grid-column: 2;
+  grid-row: 1;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
@@ -459,7 +372,8 @@
   font-size: 15px;
   font-weight: 650;
   line-height: 1.3;
-  @include text-ellipsis;
+  overflow-wrap: anywhere;
+  @include text-ellipsis-multiline(2);
 }
 
 .cardId {
@@ -471,10 +385,16 @@
 
 .cardBadges {
   display: flex;
+  grid-column: 2;
+  grid-row: 2;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 5px;
-  flex-shrink: 0;
+  min-width: 0;
+
+  &:empty {
+    display: none;
+  }
 }
 
 .badge,

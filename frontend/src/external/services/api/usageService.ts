@@ -69,6 +69,35 @@ export interface UsagePageResponse {
   items?: unknown[];
 }
 
+export interface UsageEventItem {
+  request_id?: string;
+  event_hash: string;
+  timestamp_ms: number;
+  timestamp: string;
+  provider?: string;
+  model: string;
+  requested_model?: string;
+  resolved_model?: string;
+  endpoint?: string;
+  method?: string;
+  path?: string;
+  auth_index?: string;
+  source?: string;
+  account_snapshot?: string;
+  auth_label_snapshot?: string;
+  auth_provider_snapshot?: string;
+  input_tokens: number;
+  output_tokens: number;
+  reasoning_tokens: number;
+  cached_tokens: number;
+  cache_tokens: number;
+  total_tokens: number;
+  latency_ms?: number;
+  failed: boolean;
+  status_code?: number;
+  error_message?: string;
+}
+
 export interface UsageServiceInfo {
   service?: string;
   mode?: string;
@@ -208,8 +237,12 @@ export const LEGACY_USAGE_SERVICE_ID = 'cpa-usage-service';
 export const USAGE_SERVICE_LAST_CPA_BASE_KEY = 'CPAMC:last-cpa-base';
 export const LEGACY_USAGE_SERVICE_LAST_CPA_BASE_KEY = 'cpa-usage-service:last-cpa-base';
 
-export const isUsageServiceId = (service?: string): boolean =>
-  service === USAGE_SERVICE_ID || service === LEGACY_USAGE_SERVICE_ID;
+export const isUsageServiceId = (service?: string): boolean => {
+  const normalized = service?.trim().toLowerCase();
+  return (
+    normalized === USAGE_SERVICE_ID.toLowerCase() || normalized === LEGACY_USAGE_SERVICE_ID
+  );
+};
 
 export const normalizeUsageServiceBase = (input: string): string => normalizeApiBase(input);
 
@@ -462,7 +495,7 @@ export const usageServiceApi = {
   ): Promise<CleanupTablesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<CleanupTablesResponse>(
-        buildUrl(base, '/api/data-cleanup/tables'),
+        buildUrl(base, '/v0/cpamc/data-cleanup/tables'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -478,7 +511,7 @@ export const usageServiceApi = {
   ): Promise<CleanupSettings> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<CleanupSettings>(
-        buildUrl(base, '/api/data-cleanup/settings'),
+        buildUrl(base, '/v0/cpamc/data-cleanup/settings'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -495,7 +528,7 @@ export const usageServiceApi = {
   ): Promise<CleanupSettings> => {
     return withUsageServiceError(async () => {
       const response = await axios.put<CleanupSettings>(
-        buildUrl(base, '/api/data-cleanup/settings'),
+        buildUrl(base, '/v0/cpamc/data-cleanup/settings'),
         settings,
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
@@ -513,7 +546,7 @@ export const usageServiceApi = {
   ): Promise<CleanupResult> => {
     return withUsageServiceError(async () => {
       const response = await axios.post<CleanupResult>(
-        buildUrl(base, '/api/data-cleanup/purge'),
+        buildUrl(base, '/v0/cpamc/data-cleanup/purge'),
         payload,
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
@@ -534,7 +567,7 @@ export const usageServiceApi = {
         ? handlers.idleTimeoutMs
         : 45_000;
 
-    const response = await fetch(buildUrl(base, '/v0/management/usage/realtime/stream'), {
+    const response = await fetch(buildUrl(base, '/v0/cpamc/usage/realtime/stream'), {
       method: 'GET',
       headers: {
         Accept: 'text/event-stream',
@@ -638,7 +671,7 @@ export const usageServiceApi = {
       const headers = authHeaders(managementKey);
       const params = new URLSearchParams();
       appendUsageQueryParams(params, query);
-      const summaryPath = `/v0/management/usage/summary${params.size > 0 ? `?${params}` : ''}`;
+      const summaryPath = `/v0/cpamc/usage/summary${params.size > 0 ? `?${params}` : ''}`;
       try {
         const response = await axios.get<UsagePayload>(buildUrl(base, summaryPath), {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
@@ -650,7 +683,7 @@ export const usageServiceApi = {
           throw error;
         }
       }
-      const response = await axios.get<UsagePayload>(buildUrl(base, '/v0/management/usage'), {
+      const response = await axios.get<UsagePayload>(buildUrl(base, '/v0/cpamc/usage'), {
         timeout: USAGE_SERVICE_TIMEOUT_MS,
         headers: { ...headers, 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
         params: { _t: Date.now() },
@@ -677,7 +710,7 @@ export const usageServiceApi = {
       // 缓存穿透：带时间戳，避免浏览器/中间代理返回相同响应
       params.set('_t', String(Date.now()));
       const response = await axios.get<UsagePageResponse>(
-        buildUrl(base, `/v0/management/usage/${kind}?${params}`),
+        buildUrl(base, `/v0/cpamc/usage/${kind}?${params}`),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: {
@@ -695,7 +728,7 @@ export const usageServiceApi = {
   getModelPrices: async (base: string, managementKey?: string): Promise<ModelPricesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<ModelPricesResponse>(
-        buildUrl(base, '/v0/management/model-prices'),
+        buildUrl(base, '/v0/cpamc/model-prices'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -712,7 +745,7 @@ export const usageServiceApi = {
   ): Promise<ModelPricesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.put<ModelPricesResponse>(
-        buildUrl(base, '/v0/management/model-prices'),
+        buildUrl(base, '/v0/cpamc/model-prices'),
         { prices },
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
@@ -729,7 +762,7 @@ export const usageServiceApi = {
   ): Promise<ApiKeyAliasesResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.get<ApiKeyAliasesResponse>(
-        buildUrl(base, '/v0/management/api-key-aliases'),
+        buildUrl(base, '/v0/cpamc/api-key-aliases'),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -751,7 +784,7 @@ export const usageServiceApi = {
         body.activeApiKeyHashes = activeApiKeyHashes;
       }
       const response = await axios.put<ApiKeyAliasesResponse>(
-        buildUrl(base, '/v0/management/api-key-aliases'),
+        buildUrl(base, '/v0/cpamc/api-key-aliases'),
         body,
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
@@ -769,7 +802,7 @@ export const usageServiceApi = {
   ): Promise<void> => {
     await withUsageServiceError(async () => {
       await axios.delete(
-        buildUrl(base, `/v0/management/api-key-aliases/${encodeURIComponent(apiKeyHash)}`),
+        buildUrl(base, `/v0/cpamc/api-key-aliases/${encodeURIComponent(apiKeyHash)}`),
         {
           timeout: USAGE_SERVICE_TIMEOUT_MS,
           headers: authHeaders(managementKey),
@@ -785,7 +818,7 @@ export const usageServiceApi = {
   ): Promise<ModelPriceSyncResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.post<ModelPriceSyncResponse>(
-        buildUrl(base, '/v0/management/model-prices/sync'),
+        buildUrl(base, '/v0/cpamc/model-prices/sync'),
         models ? { models } : {},
         {
           timeout: 30 * 1000,
@@ -798,7 +831,7 @@ export const usageServiceApi = {
 
   exportUsage: async (base: string, managementKey?: string): Promise<UsageExportResponse> => {
     return withUsageServiceError(async () => {
-      const response = await axios.get<Blob>(buildUrl(base, '/v0/management/usage/export'), {
+      const response = await axios.get<Blob>(buildUrl(base, '/v0/cpamc/usage/export'), {
         timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,
         headers: authHeaders(managementKey),
         responseType: 'blob',
@@ -818,7 +851,7 @@ export const usageServiceApi = {
   ): Promise<UsageImportResponse> => {
     return withUsageServiceError(async () => {
       const response = await axios.post<UsageImportResponse>(
-        buildUrl(base, '/v0/management/usage/import'),
+        buildUrl(base, '/v0/cpamc/usage/import'),
         payload,
         {
           timeout: USAGE_SERVICE_TRANSFER_TIMEOUT_MS,

@@ -78,15 +78,27 @@ type InsertResult struct {
 }
 
 type ModelPrice struct {
-	Prompt        float64 `json:"prompt"`
-	Completion    float64 `json:"completion"`
-	Cache         float64 `json:"cache"`
-	Source        string  `json:"source,omitempty"`
-	SourceModelID string  `json:"sourceModelId,omitempty"`
-	RawJSON       string  `json:"rawJson,omitempty"`
-	UpdatedAtMS   int64   `json:"updatedAtMs,omitempty"`
-	SyncedAtMS    *int64  `json:"syncedAtMs,omitempty"`
+	Prompt        float64             `json:"prompt"`
+	Completion    float64             `json:"completion"`
+	Cache         float64             `json:"cache"`
+	Mode          string              `json:"mode,omitempty"`
+	Mappings      []ModelPriceMapping `json:"mappings,omitempty"`
+	Source        string              `json:"source,omitempty"`
+	SourceModelID string              `json:"sourceModelId,omitempty"`
+	RawJSON       string              `json:"rawJson,omitempty"`
+	UpdatedAtMS   int64               `json:"updatedAtMs,omitempty"`
+	SyncedAtMS    *int64              `json:"syncedAtMs,omitempty"`
 }
+
+type ModelPriceMapping struct {
+	Model       string  `json:"model"`
+	Coefficient float64 `json:"coefficient"`
+}
+
+const (
+	ModelPriceModeFixed     = "fixed"
+	ModelPriceModeComposite = "composite"
+)
 
 type ModelPriceSyncResult struct {
 	Imported int `json:"imported"`
@@ -192,6 +204,8 @@ func (s *Store) init() error {
 			prompt_per_1m real not null,
 			completion_per_1m real not null,
 			cache_per_1m real not null,
+			pricing_mode text not null default 'fixed',
+			mapping_json text,
 			source text,
 			source_model_id text,
 			raw_json text,
@@ -261,6 +275,18 @@ func (s *Store) init() error {
 			update_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
 			remark      TEXT
 		)`,
+		`CREATE TABLE IF NOT EXISTS cpa_clash_subscription (
+			id            INTEGER PRIMARY KEY AUTOINCREMENT,
+			token         TEXT    NOT NULL UNIQUE,
+			subscription_type INTEGER NOT NULL DEFAULT 2,
+			proxy_ids     TEXT    NOT NULL DEFAULT '[]',
+			proxy_urls    TEXT    NOT NULL DEFAULT '[]',
+			access_count  INTEGER NOT NULL DEFAULT 0,
+			effective_at  DATETIME NOT NULL,
+			expires_at    DATETIME,
+			create_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			update_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 		`CREATE INDEX IF NOT EXISTS idx_cpa_channel_status ON cpa_channel_info(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_cpa_provider_channel ON cpa_provider_info(channel_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_cpa_provider_status ON cpa_provider_info(status)`,
@@ -268,6 +294,7 @@ func (s *Store) init() error {
 		`CREATE INDEX IF NOT EXISTS idx_cpa_auth_provider ON cpa_auth_detail(provider_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_cpa_auth_status ON cpa_auth_detail(status)`,
 		`CREATE INDEX IF NOT EXISTS idx_cpa_auth_type ON cpa_auth_detail(auth_type)`,
+		`CREATE INDEX IF NOT EXISTS idx_cpa_clash_subscription_effective ON cpa_clash_subscription(effective_at)`,
 	}
 	for _, statement := range statements {
 		if _, err := s.db.Exec(statement); err != nil {
@@ -290,6 +317,9 @@ func (s *Store) init() error {
 		return err
 	}
 	if err := s.ensureCharitableDescriptionColumns(); err != nil {
+		return err
+	}
+	if err := s.ensureClashSubscriptionColumns(); err != nil {
 		return err
 	}
 	if err := s.seedCharitableCatalog(); err != nil {
@@ -316,8 +346,73 @@ func (s *Store) init() error {
 	if err := s.ensureUsageEventSnapshotColumns(); err != nil {
 		return err
 	}
+	if err := s.ensureModelPriceColumns(); err != nil {
+		return err
+	}
 	if err := s.ensureUsageSearchIndex(); err != nil {
 		return err
+	}
+	// Catalog of every API path in the project; refreshed on every startup
+	// from the in-memory registry in store_meta_api.go.
+	if err := s.SyncMetaAPI(context.Background()); err != nil {
+		return fmt.Errorf("sync meta api catalog: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) ensureClashSubscriptionColumns() error {
+	rows, err := s.db.Query(`PRAGMA table_info(cpa_clash_subscription)`)
+	if err != nil {
+		return err
+	}
+	columns := make(map[string]bool)
+	for rows.Next() {
+		var cid int
+		var name, columnType string
+		var notNull, primaryKey int
+		var defaultValue sql.NullString
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		columns[name] = true
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if !columns["subscription_type"] {
+		if _, err := s.db.Exec(`ALTER TABLE cpa_clash_subscription ADD COLUMN subscription_type INTEGER NOT NULL DEFAULT 2`); err != nil {
+			return err
+		}
+	}
+	if !columns["proxy_urls"] {
+		if _, err := s.db.Exec(`ALTER TABLE cpa_clash_subscription ADD COLUMN proxy_urls TEXT NOT NULL DEFAULT '[]'`); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Store) ensureModelPriceColumns() error {
+	columns := []struct {
+		name       string
+		definition string
+	}{
+		{name: "pricing_mode", definition: "TEXT NOT NULL DEFAULT 'fixed'"},
+		{name: "mapping_json", definition: "TEXT"},
+	}
+	for _, column := range columns {
+		var count int
+		if err := s.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('model_prices') WHERE name = ?`, column.name).Scan(&count); err != nil {
+			return err
+		}
+		if count > 0 {
+			continue
+		}
+		statement := fmt.Sprintf("ALTER TABLE model_prices ADD COLUMN %s %s", column.name, column.definition)
+		if _, err := s.db.Exec(statement); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -971,7 +1066,8 @@ func (s *Store) LoadManagerConfig(ctx context.Context) (ManagerConfig, bool, err
 
 func (s *Store) LoadModelPrices(ctx context.Context) (map[string]ModelPrice, error) {
 	rows, err := s.db.QueryContext(ctx, `select
-		model, prompt_per_1m, completion_per_1m, cache_per_1m, source, source_model_id, raw_json,
+		model, prompt_per_1m, completion_per_1m, cache_per_1m, pricing_mode, mapping_json,
+		source, source_model_id, raw_json,
 		updated_at_ms, synced_at_ms
 		from model_prices order by model`)
 	if err != nil {
@@ -983,13 +1079,15 @@ func (s *Store) LoadModelPrices(ctx context.Context) (map[string]ModelPrice, err
 	for rows.Next() {
 		var model string
 		var price ModelPrice
-		var source, sourceModelID, rawJSON sql.NullString
+		var mode, mappingJSON, source, sourceModelID, rawJSON sql.NullString
 		var syncedAt sql.NullInt64
 		if err := rows.Scan(
 			&model,
 			&price.Prompt,
 			&price.Completion,
 			&price.Cache,
+			&mode,
+			&mappingJSON,
 			&source,
 			&sourceModelID,
 			&rawJSON,
@@ -997,6 +1095,12 @@ func (s *Store) LoadModelPrices(ctx context.Context) (map[string]ModelPrice, err
 			&syncedAt,
 		); err != nil {
 			return nil, err
+		}
+		price.Mode = normalizeModelPriceMode(mode.String)
+		if mappingJSON.String != "" {
+			if err := json.Unmarshal([]byte(mappingJSON.String), &price.Mappings); err != nil {
+				return nil, fmt.Errorf("decode mappings for model %q: %w", model, err)
+			}
 		}
 		price.Source = source.String
 		price.SourceModelID = sourceModelID.String
@@ -1007,10 +1111,17 @@ func (s *Store) LoadModelPrices(ctx context.Context) (map[string]ModelPrice, err
 		}
 		prices[model] = price
 	}
-	return prices, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return prepareModelPrices(prices)
 }
 
 func (s *Store) SaveModelPrices(ctx context.Context, prices map[string]ModelPrice) error {
+	preparedPrices, err := prepareModelPrices(prices)
+	if err != nil {
+		return err
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -1022,23 +1133,29 @@ func (s *Store) SaveModelPrices(ctx context.Context, prices map[string]ModelPric
 	if _, err := tx.ExecContext(ctx, `delete from model_prices`); err != nil {
 		return err
 	}
-	if len(prices) == 0 {
+	if len(preparedPrices) == 0 {
 		return tx.Commit()
 	}
 
 	stmt, err := tx.PrepareContext(ctx, `insert into model_prices (
-		model, prompt_per_1m, completion_per_1m, cache_per_1m, source, source_model_id,
+		model, prompt_per_1m, completion_per_1m, cache_per_1m, pricing_mode, mapping_json,
+		source, source_model_id,
 		raw_json, updated_at_ms, synced_at_ms
-	) values (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
 	now := time.Now().UnixMilli()
-	for model, price := range prices {
-		if err := validateModelPrice(model, price); err != nil {
-			return err
+	for model, price := range preparedPrices {
+		var mappingJSON any
+		if len(price.Mappings) > 0 {
+			encodedMappings, errMarshal := json.Marshal(price.Mappings)
+			if errMarshal != nil {
+				return fmt.Errorf("encode mappings for model %q: %w", model, errMarshal)
+			}
+			mappingJSON = string(encodedMappings)
 		}
 		if _, err := stmt.ExecContext(
 			ctx,
@@ -1046,6 +1163,8 @@ func (s *Store) SaveModelPrices(ctx context.Context, prices map[string]ModelPric
 			price.Prompt,
 			price.Completion,
 			price.Cache,
+			price.Mode,
+			mappingJSON,
 			nullString(price.Source),
 			nullString(price.SourceModelID),
 			nullString(price.RawJSON),
@@ -1307,13 +1426,97 @@ func validAPIKeyHash(value string) bool {
 }
 
 func validateModelPrice(model string, price ModelPrice) error {
-	if model == "" {
+	if strings.TrimSpace(model) == "" {
 		return errors.New("model is required")
+	}
+	mode := normalizeModelPriceMode(price.Mode)
+	if mode != ModelPriceModeFixed && mode != ModelPriceModeComposite {
+		return fmt.Errorf("invalid pricing mode %q for model %s", price.Mode, model)
+	}
+	if mode == ModelPriceModeComposite && len(price.Mappings) == 0 {
+		return fmt.Errorf("composite model %s requires at least one mapping", model)
 	}
 	if !validPriceValue(price.Prompt) || !validPriceValue(price.Completion) || !validPriceValue(price.Cache) {
 		return fmt.Errorf("invalid model price for %s", model)
 	}
 	return nil
+}
+
+func normalizeModelPriceMode(mode string) string {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == "" {
+		return ModelPriceModeFixed
+	}
+	return mode
+}
+
+func prepareModelPrices(prices map[string]ModelPrice) (map[string]ModelPrice, error) {
+	prepared := make(map[string]ModelPrice, len(prices))
+	for model, price := range prices {
+		price.Mode = normalizeModelPriceMode(price.Mode)
+		price.Mappings = append([]ModelPriceMapping(nil), price.Mappings...)
+		prepared[model] = price
+	}
+
+	states := make(map[string]uint8, len(prepared))
+	var resolve func(string) (ModelPrice, error)
+	resolve = func(model string) (ModelPrice, error) {
+		price, ok := prepared[model]
+		if !ok {
+			return ModelPrice{}, fmt.Errorf("mapped model %q does not have a price", model)
+		}
+		switch states[model] {
+		case 1:
+			return ModelPrice{}, fmt.Errorf("model price mapping cycle detected at %q", model)
+		case 2:
+			return price, nil
+		}
+		states[model] = 1
+
+		if price.Mode == ModelPriceModeComposite {
+			if len(price.Mappings) == 0 {
+				return ModelPrice{}, fmt.Errorf("composite model %s requires at least one mapping", model)
+			}
+			mappedModels := make(map[string]struct{}, len(price.Mappings))
+			price.Prompt = 0
+			price.Completion = 0
+			price.Cache = 0
+			for index := range price.Mappings {
+				mapping := &price.Mappings[index]
+				mapping.Model = strings.TrimSpace(mapping.Model)
+				if mapping.Model == "" {
+					return ModelPrice{}, fmt.Errorf("composite model %s has an empty mapped model", model)
+				}
+				if _, exists := mappedModels[mapping.Model]; exists {
+					return ModelPrice{}, fmt.Errorf("composite model %s maps model %s more than once", model, mapping.Model)
+				}
+				mappedModels[mapping.Model] = struct{}{}
+				if mapping.Coefficient <= 0 || math.IsNaN(mapping.Coefficient) || math.IsInf(mapping.Coefficient, 0) {
+					return ModelPrice{}, fmt.Errorf("composite model %s has an invalid coefficient for %s", model, mapping.Model)
+				}
+				sourcePrice, errResolve := resolve(mapping.Model)
+				if errResolve != nil {
+					return ModelPrice{}, fmt.Errorf("resolve composite model %s: %w", model, errResolve)
+				}
+				price.Prompt += sourcePrice.Prompt * mapping.Coefficient
+				price.Completion += sourcePrice.Completion * mapping.Coefficient
+				price.Cache += sourcePrice.Cache * mapping.Coefficient
+			}
+			prepared[model] = price
+		}
+		if err := validateModelPrice(model, price); err != nil {
+			return ModelPrice{}, err
+		}
+		states[model] = 2
+		return price, nil
+	}
+
+	for model := range prepared {
+		if _, err := resolve(model); err != nil {
+			return nil, err
+		}
+	}
+	return prepared, nil
 }
 
 func validPriceValue(value float64) bool {
@@ -2387,9 +2590,14 @@ func usageDetailCost(item usageBreakdownDetail, prices map[string]ModelPrice, pr
 	if len(prices) == 0 || priceIndex == nil {
 		return 0
 	}
-	price, ok := lookupUsageModelPrice(priceIndex, prices, item.Detail.ResolvedModel)
+	requestedPrice, requestedOK := lookupUsageModelPrice(priceIndex, prices, item.Model)
+	price := requestedPrice
+	ok := requestedOK && requestedPrice.Mode == ModelPriceModeComposite
 	if !ok {
-		price, ok = lookupUsageModelPrice(priceIndex, prices, item.Model)
+		price, ok = lookupUsageModelPrice(priceIndex, prices, item.Detail.ResolvedModel)
+		if !ok && requestedOK {
+			price, ok = requestedPrice, true
+		}
 	}
 	if !ok {
 		return 0

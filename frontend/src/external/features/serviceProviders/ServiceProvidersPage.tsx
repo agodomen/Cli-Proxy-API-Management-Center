@@ -29,7 +29,7 @@ import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox';
 import { Sheet } from './ui/Sheet';
 import { BaseProviderForm } from './ui/BaseProviderForm';
-import { providersApi } from '@/services/api/providers';
+import { providersApi } from '@/external/services/api/providersExt';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import { modelsApi } from '@/services/api/models';
 import { buildOpenAIChatCompletionsEndpoint } from '@/external/components/providers/utils';

@@ -2,8 +2,8 @@
  * OpenAI provider editor draft state.
  *
  * Why this exists:
- * - The app uses `PageTransition` with iOS-style stacked routes for `/ai-providers/*`.
- * - Entering `/ai-providers/openai/.../models` creates a new route layer, so component-local state
+ * - The app uses `PageTransition` with iOS-style stacked routes for `/auth/providers/*`.
+ * - Entering `/auth/providers/openai/.../models` creates a new route layer, so component-local state
  *   inside the OpenAI edit layout is not shared between the edit screen and the model picker screen.
  * - This store makes the OpenAI edit draft shared across route layers keyed by provider index/new.
  */

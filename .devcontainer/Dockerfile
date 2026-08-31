@@ -21,8 +21,7 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG GO_BUILD_PARALLELISM=2
 WORKDIR /src
-RUN echo "https://mirrors.aliyun.com/alpine/v3.24/main" > /etc/apk/repositories \
- && echo "https://mirrors.aliyun.com/alpine/v3.24/community" >> /etc/apk/repositories \
+RUN sed -i 's#https://dl-cdn.alpinelinux.org#https://mirrors.aliyun.com#g' /etc/apk/repositories \
  && apk update \
  && apk add --no-cache gcc musl-dev
 COPY backend ./backend

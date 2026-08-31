@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	cryptorand "crypto/rand"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -162,6 +163,251 @@ type ProxyDetail struct {
 	CreateAt   string `json:"create_at"`
 	UpdateAt   string `json:"update_at"`
 	Remark     string `json:"remark,omitempty"`
+}
+
+// ClashSubscription is a managed, time-bounded Clash YAML feed.
+// ProxyIDs are persisted as a JSON array so the relationship remains owned by
+// the secondary-development schema and is independent from community tables.
+type ClashSubscription struct {
+	ID               int64    `json:"id"`
+	Token            string   `json:"token"`
+	SubscriptionType int      `json:"subscription_type"`
+	ProxyIDs         []int64  `json:"proxy_ids"`
+	ProxyURLs        []string `json:"proxy_urls"`
+	AccessCount      int64    `json:"access_count"`
+	EffectiveAt      string   `json:"effective_at"`
+	ExpiresAt        *string  `json:"expires_at,omitempty"`
+	CreateAt         string   `json:"create_at"`
+	UpdateAt         string   `json:"update_at"`
+}
+
+const (
+	ClashSubscriptionTypeNodes     = 2
+	ClashSubscriptionTypeComposite = 3
+)
+
+func (detail *ProxyDetail) UnmarshalJSON(data []byte) error {
+	type proxyDetailAlias ProxyDetail
+	payload := struct {
+		*proxyDetailAlias
+		OwnerID json.RawMessage `json:"owner_id"`
+	}{
+		proxyDetailAlias: (*proxyDetailAlias)(detail),
+	}
+
+	*detail = ProxyDetail{}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		return err
+	}
+	ownerID, err := decodeOptionalInt64(payload.OwnerID)
+	if err != nil {
+		return fmt.Errorf("decode owner_id: %w", err)
+	}
+	detail.OwnerID = ownerID
+	return nil
+}
+
+func normalizeSubscriptionProxyIDs(ids []int64) ([]int64, error) {
+	seen := make(map[int64]struct{}, len(ids))
+	result := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			return nil, errors.New("invalid_proxy_id")
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	if len(result) > 500 {
+		return nil, errors.New("subscription_proxy_limit_exceeded")
+	}
+	return result, nil
+}
+
+func subscriptionToken() (string, error) {
+	buf := make([]byte, 24)
+	if _, err := cryptorand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
+}
+
+func scanClashSubscription(scanner interface{ Scan(...any) error }) (ClashSubscription, error) {
+	var sub ClashSubscription
+	var rawIDs, rawURLs string
+	var expires sql.NullString
+	if err := scanner.Scan(&sub.ID, &sub.Token, &sub.SubscriptionType, &rawIDs, &rawURLs, &sub.AccessCount, &sub.EffectiveAt, &expires, &sub.CreateAt, &sub.UpdateAt); err != nil {
+		return ClashSubscription{}, err
+	}
+	if err := json.Unmarshal([]byte(rawIDs), &sub.ProxyIDs); err != nil {
+		return ClashSubscription{}, fmt.Errorf("decode subscription proxy ids: %w", err)
+	}
+	if sub.ProxyIDs == nil {
+		sub.ProxyIDs = []int64{}
+	}
+	if err := json.Unmarshal([]byte(rawURLs), &sub.ProxyURLs); err != nil {
+		return ClashSubscription{}, fmt.Errorf("decode subscription proxy urls: %w", err)
+	}
+	if sub.ProxyURLs == nil {
+		sub.ProxyURLs = []string{}
+	}
+	if expires.Valid && strings.TrimSpace(expires.String) != "" {
+		value := expires.String
+		sub.ExpiresAt = &value
+	}
+	return sub, nil
+}
+
+func (s *CharitableStore) ListClashSubscriptions(ctx context.Context, p ListParams) (PageResult[ClashSubscription], error) {
+	var total int64
+	if err := s.db.QueryRowContext(ctx, "SELECT count(*) FROM cpa_clash_subscription").Scan(&total); err != nil {
+		return PageResult[ClashSubscription]{}, err
+	}
+	page, pageSize := normalizePage(p.Page, p.PageSize)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, token, subscription_type, proxy_ids, proxy_urls, access_count, effective_at, expires_at, create_at, update_at
+		FROM cpa_clash_subscription ORDER BY id DESC LIMIT ? OFFSET ?`, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return PageResult[ClashSubscription]{}, err
+	}
+	defer rows.Close()
+	items := make([]ClashSubscription, 0, pageSize)
+	for rows.Next() {
+		sub, err := scanClashSubscription(rows)
+		if err != nil {
+			return PageResult[ClashSubscription]{}, err
+		}
+		items = append(items, sub)
+	}
+	return PageResult[ClashSubscription]{Page: page, PageSize: pageSize, TotalItems: total, Items: items}, rows.Err()
+}
+
+func (s *CharitableStore) GetClashSubscription(ctx context.Context, id int64) (ClashSubscription, error) {
+	row := s.db.QueryRowContext(ctx, `SELECT id, token, subscription_type, proxy_ids, proxy_urls, access_count, effective_at, expires_at, create_at, update_at
+		FROM cpa_clash_subscription WHERE id=?`, id)
+	sub, err := scanClashSubscription(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ClashSubscription{}, errors.New("subscription_not_found")
+	}
+	return sub, err
+}
+
+func (s *CharitableStore) GetClashSubscriptionByToken(ctx context.Context, token string) (ClashSubscription, error) {
+	row := s.db.QueryRowContext(ctx, `SELECT id, token, subscription_type, proxy_ids, proxy_urls, access_count, effective_at, expires_at, create_at, update_at
+		FROM cpa_clash_subscription WHERE token=?`, token)
+	sub, err := scanClashSubscription(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ClashSubscription{}, errors.New("subscription_not_found")
+	}
+	return sub, err
+}
+
+func (s *CharitableStore) CreateClashSubscription(ctx context.Context, sub *ClashSubscription) error {
+	ids, err := normalizeSubscriptionProxyIDs(sub.ProxyIDs)
+	if err != nil {
+		return err
+	}
+	sub.ProxyIDs = ids
+	if sub.SubscriptionType == 0 {
+		sub.SubscriptionType = ClashSubscriptionTypeNodes
+	}
+	if strings.TrimSpace(sub.Token) == "" {
+		sub.Token, err = subscriptionToken()
+		if err != nil {
+			return err
+		}
+	}
+	rawIDs, _ := json.Marshal(ids)
+	rawURLs, _ := json.Marshal(sub.ProxyURLs)
+	result, err := s.db.ExecContext(ctx, `INSERT INTO cpa_clash_subscription (token, subscription_type, proxy_ids, proxy_urls, effective_at, expires_at)
+		VALUES (?, ?, ?, ?, ?, ?)`, sub.Token, sub.SubscriptionType, string(rawIDs), string(rawURLs), sub.EffectiveAt, nullStringPtr(sub.ExpiresAt))
+	if err != nil {
+		return err
+	}
+	sub.ID, _ = result.LastInsertId()
+	return s.GetClashSubscriptionInto(ctx, sub.ID, sub)
+}
+
+func (s *CharitableStore) UpdateClashSubscription(ctx context.Context, id int64, sub *ClashSubscription) error {
+	ids, err := normalizeSubscriptionProxyIDs(sub.ProxyIDs)
+	if err != nil {
+		return err
+	}
+	sub.ProxyIDs = ids
+	rawIDs, _ := json.Marshal(ids)
+	rawURLs, _ := json.Marshal(sub.ProxyURLs)
+	result, err := s.db.ExecContext(ctx, `UPDATE cpa_clash_subscription SET subscription_type=?, proxy_ids=?, proxy_urls=?, effective_at=?, expires_at=?, update_at=CURRENT_TIMESTAMP WHERE id=?`,
+		sub.SubscriptionType, string(rawIDs), string(rawURLs), sub.EffectiveAt, nullStringPtr(sub.ExpiresAt), id)
+	if err != nil {
+		return err
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return errors.New("subscription_not_found")
+	}
+	return s.GetClashSubscriptionInto(ctx, id, sub)
+}
+
+func (s *CharitableStore) GetClashSubscriptionInto(ctx context.Context, id int64, target *ClashSubscription) error {
+	item, err := s.GetClashSubscription(ctx, id)
+	if err != nil {
+		return err
+	}
+	*target = item
+	return nil
+}
+
+func (s *CharitableStore) DeleteClashSubscription(ctx context.Context, id int64) error {
+	result, err := s.db.ExecContext(ctx, "DELETE FROM cpa_clash_subscription WHERE id=?", id)
+	if err != nil {
+		return err
+	}
+	n, _ := result.RowsAffected()
+	if n == 0 {
+		return errors.New("subscription_not_found")
+	}
+	return nil
+}
+
+// IncrementClashSubscriptionAccess validates the active window and increments
+// access_count in one write. The returned record is the current subscription.
+func (s *CharitableStore) IncrementClashSubscriptionAccess(ctx context.Context, token string, now time.Time) (ClashSubscription, error) {
+	sub, err := s.GetClashSubscriptionByToken(ctx, token)
+	if err != nil {
+		return ClashSubscription{}, err
+	}
+	effective, err := parseStoredSubscriptionTime(sub.EffectiveAt)
+	if err != nil || now.Before(effective) {
+		return ClashSubscription{}, errors.New("subscription_not_active")
+	}
+	if sub.ExpiresAt != nil {
+		expires, parseErr := parseStoredSubscriptionTime(*sub.ExpiresAt)
+		if parseErr != nil || !now.Before(expires) {
+			return ClashSubscription{}, errors.New("subscription_expired")
+		}
+	}
+	if _, err := s.db.ExecContext(ctx, "UPDATE cpa_clash_subscription SET access_count=access_count+1, update_at=CURRENT_TIMESTAMP WHERE token=?", token); err != nil {
+		return ClashSubscription{}, err
+	}
+	return s.GetClashSubscriptionByToken(ctx, token)
+}
+
+func parseStoredSubscriptionTime(value string) (time.Time, error) {
+	value = strings.TrimSpace(value)
+	for _, layout := range []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02T15:04:05"} {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, errors.New("invalid_subscription_time")
+}
+
+func nullStringPtr(value *string) any {
+	if value == nil || strings.TrimSpace(*value) == "" {
+		return nil
+	}
+	return *value
 }
 
 // ── List request / response ──
@@ -932,6 +1178,41 @@ func (s *CharitableStore) GetProxyByIndex(ctx context.Context, proxyIndex string
 	return item, err
 }
 
+func (s *CharitableStore) GetProxyByValue(ctx context.Context, proxyValue string) (ProxyDetail, error) {
+	row := s.db.QueryRowContext(ctx,
+		"SELECT id, proxy_index, proxy_type, proxy_value, proxy_info, content, status, priority, param, owner_id, create_at, update_at, remark FROM cpa_proxy_detail WHERE proxy_value=?",
+		strings.TrimSpace(proxyValue),
+	)
+	item, err := scanProxyDetail(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ProxyDetail{}, errors.New("proxy_not_found")
+	}
+	return item, err
+}
+
+func (s *CharitableStore) GetProxyIDsByValue(ctx context.Context, proxyValue string) ([]int64, error) {
+	rows, err := s.db.QueryContext(ctx, "SELECT id FROM cpa_proxy_detail WHERE proxy_value=?", strings.TrimSpace(proxyValue))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := make([]int64, 0)
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(ids) == 0 {
+		return nil, errors.New("proxy_not_found")
+	}
+	return ids, nil
+}
+
 func (s *CharitableStore) CreateProxy(ctx context.Context, p *ProxyDetail) error {
 	if err := normalizeProxyDetail(p); err != nil {
 		return err
@@ -1348,15 +1629,21 @@ func buildProxyWhere(p ListParams) (string, []any) {
 		conditions = append(conditions, "proxy_type = ?")
 		args = append(args, *p.ProxyType)
 	}
-	if p.Search != "" {
-		like := "%" + p.Search + "%"
-		conditions = append(conditions, "(proxy_index LIKE ? OR proxy_value LIKE ? OR proxy_info LIKE ? OR content LIKE ? OR remark LIKE ? OR param LIKE ?)")
+	for _, term := range strings.Fields(p.Search) {
+		like := "%" + escapeLikePattern(term) + "%"
+		conditions = append(conditions, `(proxy_index LIKE ? ESCAPE '\' OR proxy_value LIKE ? ESCAPE '\' OR proxy_info LIKE ? ESCAPE '\' OR content LIKE ? ESCAPE '\' OR remark LIKE ? ESCAPE '\' OR param LIKE ? ESCAPE '\')`)
 		args = append(args, like, like, like, like, like, like)
 	}
 	if len(conditions) == 0 {
 		return "", nil
 	}
 	return " WHERE " + strings.Join(conditions, " AND "), args
+}
+
+func escapeLikePattern(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `%`, `\%`)
+	return strings.ReplaceAll(value, `_`, `\_`)
 }
 
 type authScanner interface {

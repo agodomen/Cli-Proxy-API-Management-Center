@@ -4,7 +4,7 @@ import type { Channel, Provider, APIKey, ProtocolKey } from '../types';
 
 function buildBase(base: string): string {
   const normalized = normalizeApiBase(base).replace(/\/+$/, '');
-  return `${normalized}/api/charitable/debug/key`;
+  return `${normalized}/v0/cpamc/charitable/debug/key`;
 }
 
 const authConfig = (managementKey?: string) =>

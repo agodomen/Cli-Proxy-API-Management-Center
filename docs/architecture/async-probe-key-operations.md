@@ -150,22 +150,22 @@ CPA 请求上报
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| `GET` / `PUT` | `/api/charitable/probe/config` | 查询或保存全局探测配置。 |
-| `GET` | `/api/charitable/probe/status` | 查询队列、处理量、动作量和最后错误。 |
-| `GET` | `/api/charitable/probe/summary` | 查询指定窗口的探测汇总。 |
-| `GET` | `/api/charitable/probe/results` | 分页查询探测结果，支持账号、密钥、提供商、成功状态和时间过滤。 |
-| `GET` | `/api/charitable/probe/stats` | 查询按账号或密钥聚合的健康统计。 |
-| `GET` | `/api/charitable/probe/actions` | 分页查询自动动作日志。 |
+| `GET` / `PUT` | `/v0/cpamc/charitable/probe/config` | 查询或保存全局探测配置。 |
+| `GET` | `/v0/cpamc/charitable/probe/status` | 查询队列、处理量、动作量和最后错误。 |
+| `GET` | `/v0/cpamc/charitable/probe/summary` | 查询指定窗口的探测汇总。 |
+| `GET` | `/v0/cpamc/charitable/probe/results` | 分页查询探测结果，支持账号、密钥、提供商、成功状态和时间过滤。 |
+| `GET` | `/v0/cpamc/charitable/probe/stats` | 查询按账号或密钥聚合的健康统计。 |
+| `GET` | `/v0/cpamc/charitable/probe/actions` | 分页查询自动动作日志。 |
 
 密钥详情的过期时间和 `probe_policy` 继续通过 charitable 密钥 CRUD 接口读取和保存。
 
 ## 9. 请求监控 SSE 联动
 
-`/realtime/request` 使用 `/v0/management/usage/realtime/stream` 建立带管理密钥认证的 SSE 长连接。服务端在 `usage_events` 最新游标增长时发送 `usage` 事件，前端收到通知后按当前筛选条件重新加载请求页。
+`/realtime/request` 使用 `/v0/cpamc/usage/realtime/stream` 建立带管理密钥认证的 SSE 长连接。服务端在 `usage_events` 最新游标增长时发送 `usage` 事件，前端收到通知后按当前筛选条件重新加载请求页。
 
 - SSE 只发送变更游标和时间，不在长连接中复制完整请求数据。
 - 前端对 SSE 通知做 300ms 防抖，并串行合并高频刷新，避免并发 REST 覆盖结果；SSE 触发的表格刷新使用 quiet 模式，不打断表格 loading 状态。
-- 实时页默认不请求 `/v0/management/usage/summary`，只按当前筛选拉取 `/v0/management/usage/realtime` 分页；筛选下拉在无 summary facets 时从当前 realtime 行推导。
+- 实时页默认不请求 `/v0/cpamc/usage/summary`，只按当前筛选拉取 `/v0/cpamc/usage/realtime` 分页；筛选下拉在无 summary facets 时从当前 realtime 行推导。
 - 监控中心等需要汇总卡片的页面仍会通过 `useUsageData` 默认拉取 summary。
 - 连接一旦断开（关闭、错误、空闲超时）会立即进入重连循环，并按 1 秒到 15 秒有界退避；网络恢复（`online`）或标签页重新可见且未处于 live 时会强制打断退避并立刻重连。
 - 前端对 SSE 施加 45 秒空闲超时（超过服务端 15 秒 heartbeat），心跳注释也算活性，避免半开连接假活。

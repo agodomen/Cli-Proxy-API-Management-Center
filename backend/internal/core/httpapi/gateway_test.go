@@ -36,7 +36,7 @@ func TestIsInferenceProxyPath(t *testing.T) {
 	if isInferenceProxyPath("/v0/management/auth-files") {
 		t.Fatal("management must not match inference proxy")
 	}
-	if isInferenceProxyPath("/api/charitable/tokens") {
+	if isInferenceProxyPath("/v0/cpamc/charitable/tokens") {
 		t.Fatal("center api must not match")
 	}
 }

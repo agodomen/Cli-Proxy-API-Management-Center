@@ -1,5 +1,5 @@
 /** Top-level floating dock entry. */
-export type DebugWorkspace = 'sql' | 'api' | 'key';
+export type DebugWorkspace = 'sql' | 'api' | 'key' | 'meta';
 
 /** SQL workspace sub-mode. */
 export type SqlMode = 'data' | 'stats';

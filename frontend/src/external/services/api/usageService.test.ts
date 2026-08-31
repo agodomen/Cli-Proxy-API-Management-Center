@@ -49,19 +49,19 @@ describe('usageServiceApi usage pages', () => {
 
     expect(mockedAxios.get).toHaveBeenNthCalledWith(
       1,
-      'https://manage.example/v0/management/usage/accounts?start_ms=1000&end_ms=2000&search=codex&page=2&page_size=12&sort_key=lastSeenAt&sort_direction=desc',
+      'https://manage.example/v0/cpamc/usage/accounts?start_ms=1000&end_ms=2000&search=codex&page=2&page_size=12&sort_key=lastSeenAt&sort_direction=desc',
       expect.objectContaining({
         headers: { Authorization: 'Bearer management-key' },
       })
     );
     expect(mockedAxios.get).toHaveBeenNthCalledWith(
       2,
-      'https://manage.example/v0/management/usage/api-keys?start_ms=1000&end_ms=2000&page=1&page_size=20',
+      'https://manage.example/v0/cpamc/usage/api-keys?start_ms=1000&end_ms=2000&page=1&page_size=20',
       expect.any(Object)
     );
     expect(mockedAxios.get).toHaveBeenNthCalledWith(
       3,
-      'https://manage.example/v0/management/usage/realtime?status=failed&page=3&page_size=50',
+      'https://manage.example/v0/cpamc/usage/realtime?status=failed&page=3&page_size=50',
       expect.any(Object)
     );
   });
@@ -81,12 +81,12 @@ describe('usageServiceApi usage pages', () => {
     expect(payload.total_requests).toBe(2);
     expect(mockedAxios.get).toHaveBeenNthCalledWith(
       1,
-      'https://manage.example/v0/management/usage/summary?start_ms=1000&end_ms=2000&search=codex',
+      'https://manage.example/v0/cpamc/usage/summary?start_ms=1000&end_ms=2000&search=codex',
       expect.any(Object)
     );
     expect(mockedAxios.get).toHaveBeenNthCalledWith(
       2,
-      'https://manage.example/v0/management/usage',
+      'https://manage.example/v0/cpamc/usage',
       expect.objectContaining({
         headers: { Authorization: 'Bearer management-key' },
       })

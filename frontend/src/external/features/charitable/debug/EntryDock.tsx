@@ -1,4 +1,4 @@
-import { GlyphApi, GlyphData, GlyphKey, MicroIcon } from './MicroIcon';
+import { GlyphApi, GlyphData, GlyphKey, GlyphMeta, MicroIcon } from './MicroIcon';
 import type { DebugWorkspace } from './types';
 import styles from './DebugPage.module.scss';
 
@@ -9,6 +9,7 @@ interface EntryDockProps {
     sql: string;
     api: string;
     key: string;
+    meta: string;
     toolbar: string;
   };
 }
@@ -73,6 +74,25 @@ export function EntryDock({ workspace, onWorkspaceChange, labels }: EntryDockPro
               <GlyphKey />
             </MicroIcon>
             <span className={styles.floatBtnLabel}>{labels.key}</span>
+          </button>
+
+          <button
+            type="button"
+            className={[
+              styles.floatBtn,
+              workspace === 'meta' ? styles.floatBtnActive : '',
+              workspace === 'meta' ? styles.floatBtnBlue : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            aria-pressed={workspace === 'meta'}
+            title={labels.meta}
+            onClick={() => onWorkspaceChange('meta')}
+          >
+            <MicroIcon tone={workspace === 'meta' ? 'blue' : 'neutral'} active={workspace === 'meta'} size={15}>
+              <GlyphMeta />
+            </MicroIcon>
+            <span className={styles.floatBtnLabel}>{labels.meta}</span>
           </button>
         </div>
       </div>

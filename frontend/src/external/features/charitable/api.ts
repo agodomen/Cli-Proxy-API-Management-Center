@@ -5,6 +5,7 @@ import type {
   Provider,
   APIKey,
   ProxyDetail,
+  ClashSubscription,
   PageResult,
   ListParams,
   KeyStatusCount,
@@ -66,7 +67,7 @@ export function formatCharitableApiError(error: unknown, fallback = 'request_fai
 // Compute the charitable API base URL from the usage service base
 function buildCharitableBase(base: string): string {
   const normalized = normalizeApiBase(base).replace(/\/+$/, '');
-  return `${normalized}/api/charitable`;
+  return `${normalized}/v0/cpamc/charitable`;
 }
 
 const authConfig = (managementKey?: string) =>
@@ -574,4 +575,133 @@ export async function batchDeleteProxies(
     { ids },
     authConfig(managementKey)
   );
+}
+
+export interface ProxyImportIssue {
+  index: number;
+  message: string;
+}
+
+export interface ProxyImportResult {
+  total: number;
+  created: number;
+  skipped: number;
+  failed: number;
+  issues: ProxyImportIssue[];
+  items: ProxyDetail[];
+}
+
+export interface ProxyURLResolveIssue {
+  url: string;
+  message: string;
+}
+
+export interface ProxyURLResolveResult {
+  urls: string[];
+  items: ProxyDetail[];
+  created: number;
+  skipped: number;
+  failed: number;
+  issues: ProxyURLResolveIssue[];
+}
+
+export async function importProxies(
+  base: string,
+  content: string,
+  privacy: 'local' | 'public' | 'personal',
+  managementKey?: string
+): Promise<ProxyImportResult> {
+  const { data } = await axios.post<ProxyImportResult>(
+    `${buildCharitableBase(base)}/proxies/batch/import`,
+    { content, privacy },
+    authConfig(managementKey)
+  );
+  return data;
+}
+
+export interface ProxyURLBatchDeleteResult {
+  total: number;
+  matched: number;
+  deleted: number;
+  missing: string[];
+}
+
+export async function batchDeleteProxiesByURLs(
+  base: string,
+  content: string,
+  managementKey?: string
+): Promise<ProxyURLBatchDeleteResult> {
+  const { data } = await axios.post<ProxyURLBatchDeleteResult>(
+    `${buildCharitableBase(base)}/proxies/batch/delete-by-urls`,
+    { content },
+    authConfig(managementKey)
+  );
+  return data;
+}
+
+export async function listClashSubscriptions(
+  base: string,
+  params: ListParams,
+  managementKey?: string
+): Promise<PageResult<ClashSubscription>> {
+  const { data } = await axios.get<PageResult<ClashSubscription>>(
+    `${buildCharitableBase(base)}/proxies/subscriptions`,
+    listConfig(params, managementKey)
+  );
+  return data;
+}
+
+export async function resolveClashSubscriptionURLs(
+  base: string,
+  urls: string[],
+  managementKey?: string
+): Promise<ProxyURLResolveResult> {
+  const { data } = await axios.post<ProxyURLResolveResult>(
+    `${buildCharitableBase(base)}/proxies/subscriptions/resolve-urls`,
+    { urls, privacy: 'public' },
+    authConfig(managementKey)
+  );
+  return data;
+}
+
+export async function createClashSubscription(
+  base: string,
+  input: Pick<ClashSubscription, 'subscription_type' | 'proxy_ids' | 'proxy_urls' | 'effective_at' | 'expires_at'>,
+  managementKey?: string
+): Promise<ClashSubscription> {
+  const { data } = await axios.post<ClashSubscription>(
+    `${buildCharitableBase(base)}/proxies/subscriptions`,
+    input,
+    authConfig(managementKey)
+  );
+  return data;
+}
+
+export async function updateClashSubscription(
+  base: string,
+  id: number,
+  input: Pick<ClashSubscription, 'subscription_type' | 'proxy_ids' | 'proxy_urls' | 'effective_at' | 'expires_at'>,
+  managementKey?: string
+): Promise<ClashSubscription> {
+  const { data } = await axios.put<ClashSubscription>(
+    `${buildCharitableBase(base)}/proxies/subscriptions/${id}`,
+    input,
+    authConfig(managementKey)
+  );
+  return data;
+}
+
+export async function deleteClashSubscription(
+  base: string,
+  id: number,
+  managementKey?: string
+): Promise<void> {
+  await axios.delete(
+    `${buildCharitableBase(base)}/proxies/subscriptions/${id}`,
+    authConfig(managementKey)
+  );
+}
+
+export function buildClashSubscriptionURL(base: string, token: string): string {
+  return `${buildCharitableBase(base)}/subscriptions/${encodeURIComponent(token)}/clash`;
 }

@@ -4,11 +4,7 @@
 
 import { apiClient } from './client';
 import { isRecord } from '@/utils/helpers';
-import {
-  normalizeGeminiKeyConfig,
-  normalizeOpenAIProvider,
-  normalizeProviderKeyConfig,
-} from './transformers';
+import { normalizeOpenAIProvider, normalizeProviderKeyConfig } from './transformers';
 import type {
   GeminiKeyConfig,
   OpenAIProviderConfig,
@@ -81,13 +77,6 @@ const getStringField = (record: Record<string, unknown>, keys: readonly string[]
     if (text) return text;
   }
   return '';
-};
-
-const providerKeyIdentity = (record: Record<string, unknown>) => {
-  const apiKey = getStringField(record, ['api-key']);
-  if (!apiKey) return '';
-  const baseUrl = getStringField(record, ['base-url']);
-  return `${apiKey}\u0000${baseUrl}`;
 };
 
 const openAIProviderIdentity = (record: Record<string, unknown>) =>
@@ -282,25 +271,6 @@ const mergeOpenAIProviderPayload = (raw: unknown, payload: Record<string, unknow
   return next;
 };
 
-const buildPreservedList = async <T>(
-  section: string,
-  configs: T[],
-  serialize: (item: T) => Record<string, unknown>,
-  mergePayload: (raw: unknown, payload: Record<string, unknown>) => Record<string, unknown>,
-  getIdentity: (record: Record<string, unknown>) => string
-) => {
-  const rawConfig = await apiClient.get('/config');
-  const rawItems = getRawSectionList(rawConfig, section);
-  const payloads = configs.map((item) => serialize(item));
-  const rawRecords = rawItems.map((item) => (isRecord(item) ? item : undefined));
-  const usedIndexes = new Set<number>();
-
-  return payloads.map((payload, index) => {
-    const raw = findRawRecord(rawRecords, usedIndexes, payload, index, getIdentity);
-    return mergePayload(raw, payload);
-  });
-};
-
 const extractArrayPayload = (data: unknown, key: string): unknown[] => {
   if (!isRecord(data)) return [];
   const list = data[key];
@@ -451,24 +421,6 @@ const serializeOpenAIProvider = (provider: OpenAIProviderConfig) => {
 };
 
 export const providersApi = {
-  async getGeminiKeys(): Promise<GeminiKeyConfig[]> {
-    const data = await apiClient.get('/gemini-api-key');
-    const list = extractArrayPayload(data, 'gemini-api-key');
-    return list.map((item) => normalizeGeminiKeyConfig(item)).filter(Boolean) as GeminiKeyConfig[];
-  },
-
-  saveGeminiKeys: async (configs: GeminiKeyConfig[]) =>
-    apiClient.put(
-      '/gemini-api-key',
-      await buildPreservedList(
-        'gemini-api-key',
-        configs,
-        serializeGeminiKey,
-        (raw, payload) => mergeProviderKeyPayload(raw, payload, GEMINI_KEY_FIELDS),
-        providerKeyIdentity
-      )
-    ),
-
   createGeminiKey: (config: GeminiKeyConfig) =>
     mutateLatestProviderList('gemini-api-key', (latestItems) =>
       appendLatestProviderRecord(latestItems, serializeGeminiKey(config), (raw, payload) =>
@@ -488,24 +440,6 @@ export const providersApi = {
 
   deleteGeminiKey: (apiKey: string, baseUrl?: string) =>
     apiClient.delete(`/gemini-api-key${buildProviderDeleteQuery(apiKey, baseUrl)}`),
-
-  async getCodexConfigs(): Promise<ProviderKeyConfig[]> {
-    const data = await apiClient.get('/codex-api-key');
-    const list = extractArrayPayload(data, 'codex-api-key');
-    return list.map((item) => normalizeProviderKeyConfig(item)).filter(Boolean) as ProviderKeyConfig[];
-  },
-
-  saveCodexConfigs: async (configs: ProviderKeyConfig[]) =>
-    apiClient.put(
-      '/codex-api-key',
-      await buildPreservedList(
-        'codex-api-key',
-        configs,
-        serializeProviderKey,
-        (raw, payload) => mergeProviderKeyPayload(raw, payload, CODEX_KEY_FIELDS),
-        providerKeyIdentity
-      )
-    ),
 
   createCodexConfig: (config: ProviderKeyConfig) =>
     mutateLatestProviderList('codex-api-key', (latestItems) =>
@@ -547,24 +481,6 @@ export const providersApi = {
   deleteXAIConfig: (apiKey: string, baseUrl?: string) =>
     apiClient.delete(`/xai-api-key${buildProviderDeleteQuery(apiKey, baseUrl)}`),
 
-  async getClaudeConfigs(): Promise<ProviderKeyConfig[]> {
-    const data = await apiClient.get('/claude-api-key');
-    const list = extractArrayPayload(data, 'claude-api-key');
-    return list.map((item) => normalizeProviderKeyConfig(item)).filter(Boolean) as ProviderKeyConfig[];
-  },
-
-  saveClaudeConfigs: async (configs: ProviderKeyConfig[]) =>
-    apiClient.put(
-      '/claude-api-key',
-      await buildPreservedList(
-        'claude-api-key',
-        configs,
-        serializeProviderKey,
-        (raw, payload) => mergeProviderKeyPayload(raw, payload, CLAUDE_KEY_FIELDS),
-        providerKeyIdentity
-      )
-    ),
-
   createClaudeConfig: (config: ProviderKeyConfig) =>
     mutateLatestProviderList('claude-api-key', (latestItems) =>
       appendLatestProviderRecord(latestItems, serializeProviderKey(config), (raw, payload) =>
@@ -593,18 +509,6 @@ export const providersApi = {
       .filter(Boolean) as ProviderKeyConfig[];
   },
 
-  saveVertexConfigs: async (configs: ProviderKeyConfig[]) =>
-    apiClient.put(
-      '/vertex-api-key',
-      await buildPreservedList(
-        'vertex-api-key',
-        configs,
-        serializeVertexKey,
-        (raw, payload) => mergeProviderKeyPayload(raw, payload, VERTEX_KEY_FIELDS),
-        providerKeyIdentity
-      )
-    ),
-
   createVertexConfig: (config: ProviderKeyConfig) =>
     mutateLatestProviderList('vertex-api-key', (latestItems) =>
       appendLatestProviderRecord(latestItems, serializeVertexKey(config), (raw, payload) =>
@@ -632,18 +536,6 @@ export const providersApi = {
       .map((item, index) => normalizeOpenAIProvider(item, index))
       .filter(Boolean) as OpenAIProviderConfig[];
   },
-
-  saveOpenAIProviders: async (providers: OpenAIProviderConfig[]) =>
-    apiClient.put(
-      '/openai-compatibility',
-      await buildPreservedList(
-        'openai-compatibility',
-        providers,
-        serializeOpenAIProvider,
-        mergeOpenAIProviderPayload,
-        openAIProviderIdentity
-      )
-    ),
 
   createOpenAIProvider: (provider: OpenAIProviderConfig) =>
     mutateLatestProviderList('openai-compatibility', (latestItems) =>

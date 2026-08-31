@@ -30,7 +30,6 @@ func (cfg *Config) NormalizePluginsConfig() {
 	if cfg.Plugins.Configs == nil {
 		cfg.Plugins.Configs = map[string]PluginInstanceConfig{}
 	}
-	cfg.NormalizePluginProxy()
 }
 
 // SanitizeCodexHeaderDefaults trims surrounding whitespace from the
@@ -295,70 +294,4 @@ func NormalizeOAuthExcludedModels(entries map[string][]string) map[string][]stri
 		return nil
 	}
 	return out
-}
-
-// NormalizePluginProxy normalizes plugin-proxy url/status.
-func (cfg *Config) NormalizePluginProxy() {
-	if cfg == nil {
-		return
-	}
-	cfg.PluginProxy = NormalizePluginProxyConfig(cfg.PluginProxy)
-}
-
-// NormalizePluginProxyConfig returns a normalized plugin-proxy setting.
-// Status is clamped to 0 (none), 1 (custom), 2 (system), or 3 (accelerator).
-func NormalizePluginProxyConfig(raw PluginProxyConfig) PluginProxyConfig {
-	out := PluginProxyConfig{
-		URL:         strings.TrimSpace(raw.URL),
-		Accelerator: strings.TrimSpace(raw.Accelerator),
-	}
-	switch raw.Status {
-	case PluginProxyStatusCustom:
-		out.Status = PluginProxyStatusCustom
-	case PluginProxyStatusSystem:
-		out.Status = PluginProxyStatusSystem
-	case PluginProxyStatusAccelerator:
-		out.Status = PluginProxyStatusAccelerator
-	default:
-		out.Status = PluginProxyStatusNone
-	}
-	return out
-}
-
-// EffectivePluginStoreProxyURL returns the outbound proxy URL used by plugin-store
-// list/install clients. Empty means no dedicated traditional proxy (direct or accelerator).
-func EffectivePluginStoreProxyURL(cfg *Config) string {
-	if cfg == nil {
-		return ""
-	}
-	pluginProxy := NormalizePluginProxyConfig(cfg.PluginProxy)
-	switch pluginProxy.Status {
-	case PluginProxyStatusSystem:
-		return strings.TrimSpace(cfg.ProxyURL)
-	case PluginProxyStatusCustom:
-		return strings.TrimSpace(pluginProxy.URL)
-	default:
-		// none / accelerator do not use a traditional HTTP(S)/SOCKS proxy.
-		return ""
-	}
-}
-
-// EffectivePluginStoreAcceleratorBase returns the web accelerator base used by
-// plugin-store list/install clients. Empty means no URL rewriting.
-// The base is expected to be an absolute http/https URL; callers rewrite
-// GitHub resource URLs as base + original absolute URL.
-func EffectivePluginStoreAcceleratorBase(cfg *Config) string {
-	if cfg == nil {
-		return ""
-	}
-	pluginProxy := NormalizePluginProxyConfig(cfg.PluginProxy)
-	if pluginProxy.Status != PluginProxyStatusAccelerator {
-		return ""
-	}
-	return strings.TrimSpace(pluginProxy.Accelerator)
-}
-
-// EffectivePluginProxyURL preserves the existing method-based API for compatibility.
-func (cfg *Config) EffectivePluginProxyURL() string {
-	return EffectivePluginStoreProxyURL(cfg)
 }

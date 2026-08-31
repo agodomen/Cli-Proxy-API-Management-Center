@@ -98,10 +98,7 @@
 | `services/internal/core/**` | `backend/internal/core/**` |
 | `services/cmd/cpamc/**` | `backend/cmd/cpamc/**` |
 
-Go module path：
-
-- 权威：`github.com/agodomen/Cli-Proxy-API-Management-Center/backend`
-- 历史：`.../services`（迁移前，仅作对照）
+Go module path 保持社区原值：`github.com/router-for-me/CLIProxyAPI/v7`。同步时不做 module path 批量改写。
 
 
 ## 4. 双上游整树挂载映射
@@ -121,13 +118,7 @@ Go module path：
 | （本地）`frontend/src/external/**` | 保护 | 永不覆盖 |
 | （本地）`frontend/.frontend-upstream-ref` | 保护 | 永不覆盖；仅成功同步后由本仓更新 |
 
-Level 2 钩子（同步后复查；以下均为迁移后权威路径）：
-
-| 文件 | 动作 |
-|---|---|
-| `frontend/src/main.tsx` | 保留 `import '@/external/cpa-extension'` |
-| `frontend/src/router/MainRoutes.tsx` | 保留 `...externalRoutes` |
-| `frontend/src/components/layout/MainLayout.tsx` | 保留 `...externalNavGroups` |
+前端二开入口已经整体迁入 `frontend/src/external/`。`frontend/index.html` 指向 `src/external/main.tsx`，社区 `main.tsx`、`App.tsx`、`MainRoutes.tsx` 和 `MainLayout.tsx` 由 manifest 保持不存在。
 
 商业入口排除（不移植）：
 
@@ -157,10 +148,7 @@ Level 2 钩子（同步后复查；以下均为迁移后权威路径）：
 | （本地）`backend/cmd/cpamc/**` | 保护 | 永不覆盖 |
 | （本地）`backend/.cliproxyapi-upstream-ref` | 保护 | 永不覆盖；仅成功同步后由本仓更新 |
 
-模块路径改写：
-
-- 社区：`github.com/router-for-me/CLIProxyAPI/v7`
-- 本地：`github.com/agodomen/Cli-Proxy-API-Management-Center/backend`
+模块路径不改写：本地与社区均为 `github.com/router-for-me/CLIProxyAPI/v7`。
 
 ### 4.3 合成控制面（只属于本仓）
 
@@ -233,23 +221,41 @@ synced_at=<YYYY-MM-DD>                                # 可选
 
 ### 5.1 前端
 
-**策略：镜像覆盖 + Level 2 钩子重贴 + 商业入口排除**
+**策略：镜像覆盖 + external 入口保护 + 商业入口排除**
 
 - 基线：`frontend/.frontend-upstream-ref`（成功后才更新）
 - 覆盖社区前端实现树到 `frontend/src/**`（排除 `frontend/src/external/`）
 - `frontend/` 工程根文件按社区更新，但不要覆盖合成控制面，也不覆盖 pin 本身
-- 同步后重贴 3 个 Level 2 钩子
+- 保护 `external/` 和 manifest 中的入口/商业排除文件
 - 排除商业 quick-start / apikeyFun quick-fill 等入口（见 AGENTS）
 
 ### 5.2 后端
 
-**策略：模块路径归一后的人工三方合并，禁止整仓覆盖**
+**策略：候选树镜像覆盖 + 极小 manifest**
 
 - 基线：`backend/.cliproxyapi-upstream-ref`（成功后才更新）
 - 叙述：`backend/CLIPROXYAPI_UPSTREAM_CN.md`（非平凡同步 prepend 一节）
 - 对比：`bin/compare-cliproxyapi.sh`
 - 永不覆盖：`backend/internal/core/`、`backend/cmd/cpamc/`、pin 文件
-- 社区自引用改写为当前 module path 后再比较/合并
+- 社区 module path 保持原样；二开逻辑使用新的 core 路径和 HTTP namespace
+
+**门禁（同步后必须全绿，CI 亦执行）**：
+
+```bash
+bin/check-upstream-drift.sh --verbose   # 镜像 == 上游@pin + upstream-allowlist.conf，零容忍
+bin/check-import-boundary.sh            # 二开手写代码对上游 internal 的依赖只能减少
+bin/gen-cli-mirror.sh --check           # run.gen.go 与上游 cmd/server/main.go 一致
+```
+
+两类脚本与 `compare-cliproxyapi.sh` 的分工：后者面向人、预期有差异、用于阅读；门禁面向 CI、预期零意外、用于卡门。已批准差异分别声明在 `bin/upstream-allowlist.conf` 与 `bin/import-boundary-allowlist.conf`。
+
+后端已不再依赖「跳过覆盖」保留本地改动，`bin/sync-manifest.conf` 的 `[backend]` 段为空，后端同步无需 `--confirm-manifest`：
+
+- 必须落在上游文件里的改动放在 `backend/patches/*.patch`，同步时 `git apply --check` 先验后应用，冲突即整体失败
+- 上游入口 `cmd/server/main.go` 的镜像由 `bin/gen-cli-mirror.sh` 生成为 `internal/core/cli/run.gen.go`，禁止手改
+- 补丁行为另有回归测试 `internal/core/httpapi/plugin_store_patch_test.go` 兜底，补丁静默丢失会被测试点名
+
+后端架构层面的优化路线（双 module 拆分、契约测试、纯依赖模式）见[后端二次开发架构优化方案](./backend-extension-architecture.md)。
 
 ### 5.3 上游代码来源（Agent / 人工统一）
 
@@ -307,26 +313,27 @@ synced_at=<YYYY-MM-DD>                                # 可选
    - 前端：同等思路做路径级 diff（可后补 `bin/compare-frontend.sh`）  
    - 计算提交数、文件清单、高风险模块
 
-5. **分类文件**  
-   - pure upstream  
-   - local-only（`frontend/src/external/`、`backend/internal/core/`、`backend/cmd/cpamc/`、pin、根控制面）  
-   - overlap  
-   - intentional divergence  
-   - commercial exclusion / control-plane exclusion
+5. **自动覆盖社区代码**
+   - 运行 `bin/sync-community.sh`（交互模式或非交互模式）
+   - 脚本自动覆盖所有非手动合并文件，跳过 `bin/sync-manifest.conf` 中列出的文件
+   - 试运行：`bin/sync-community.sh --dry-run --side backend --source <upstream> --ref <tag>`
+   - 真实同步：`bin/sync-community.sh --side backend --source <upstream> --ref <tag> --confirm-manifest`
+   - 同 commit 强制重铺追加 `--force`；脚本在候选验证通过后才替换挂载点并更新 pin
 
-6. **移植合并（写入 monorepo 挂载点）**  
-   - 前端：按映射覆盖社区树 + 工程根文件；重贴 Level 2 钩子；排除商业入口  
-   - 后端：三方合并 / 人工移植；保持 module path `.../backend`  
-   - **不是**对合成仓 `git merge` 上游 main 整仓
+6. **手动合并**
+   - 脚本跳过的文件需要人工检查并合并二开补丁（见 `bin/sync-manifest.conf`）
+   - 后端当前仅 `internal/pluginstore/auth.go`：社区未导出的运行期 URL 校验需要允许 GitHub CDN 短期签名参数
+   - 前端保护入口、构建依赖和商业入口排除文件
+   - 合并方法：`git -C <upstream> show <commit>:<path> > /tmp/upstream.go; diff -u /tmp/upstream.go <local>`
 
 7. **适配二开**  
-   - localengine / usage 字段、management 路由、plugin-proxy、Level 2 钩子等
+   - localengine、usage、`/v0/cpamc/*` 二开路由和 external 入口
 
 8. **验证（未通过则停止，pin 保持旧值）**
 
 ```bash
-cd frontend && npm run type-check   # 或 bun run type-check
-cd backend && go test ./...
+cd frontend && bun install --frozen-lockfile && bun run build
+cd backend && GOMAXPROCS=1 go test -p 1 ./...
 cd backend && go build ./cmd/cpamc/ ./cmd/server/
 ./build.sh docs   # 若文档/路径受影响
 ```
@@ -356,15 +363,13 @@ cd backend && go build ./cmd/cpamc/ ./cmd/server/
 
 | 差异项 | 路径 | 原因 |
 |---|---|---|---|
-| 认证文件安全名 / auth_index 兼容 | `backend/internal/api/handlers/management/auth_files.go` | 防路径穿越与索引兼容 |
-| OpenAI Compatibility 单凭证禁用 | `backend/internal/api/handlers/management/config_apikey_disable*.go` | 多 key 运营语义 |
-| auth JSON `disabled` 多类型兼容 | `backend/internal/watcher/synthesizer/file.go` | 兼容历史元数据 |
-| Plugin Store 独立代理 | plugin-proxy 相关 config/handler/UI | 与全局 `proxy-url` 解耦 |
+| 签名下载 URL 兼容 | `backend/internal/pluginstore/auth.go` | 仅允许 artifact 类型的 GitHub CDN 临时签名查询参数；registry/metadata 与非 GitHub URL 仍严格校验 |
+| Plugin Store 独立代理 | `backend/internal/core/httpapi/plugin_{proxy,store}.go` | SQLite 存储、新路径，与社区 config/handler 解耦 |
 | SQLite 运营库依赖 | `backend/go.mod` | core 需要 `modernc.org/sqlite` |
 | 统一运行入口 | `backend/cmd/cpamc/`、`backend/internal/core/localengine/` | 管理面 + 内置引擎 |
 | 前端扩展子系统 | `frontend/src/external/` | 全部 CPA 二开 UI/业务 |
 
-后续可再机读化为 `backend/LOCAL_DIVERGENCES.md`。
+手动合并清单（机读）：`bin/sync-manifest.conf`，由 `bin/sync-community.sh` 自动消费。
 
 ## 8. 冲突默认裁决
 
@@ -402,7 +407,7 @@ cd backend && go build ./cmd/cpamc/ ./cmd/server/
 1. `git mv` 前端工程文件与 `src/`、`tests/` 到 `frontend/`
 2. `git mv` `services/` 到 `backend/`
 3. 更新 `build.sh`、Vite/TS 路径、devcontainer、CI
-4. 批量改 Go import / module path
+4. 保持社区 Go module path，更新本地构建路径
 5. 更新所有文档中的路径
 6. 全量验证
 7. 单独提交 `chore(repo): split monorepo into frontend/ and backend/`
@@ -434,7 +439,7 @@ cd backend && go build ./cmd/cpamc/ ./cmd/server/
 - [ ] 已**只读**旧 pin 基线，并选定新上游 tag/commit（尚未改 pin）
 - [ ] 已分类 pure / local-only / overlap / intentional / exclusion
 - [ ] 未覆盖 external / core / cpamc
-- [ ] Level 2 钩子仍在
+- [ ] `index.html` 仍指向 `src/external/main.tsx`
 - [ ] 商业 quick-start / quick-fill 未被重新引入
 - [ ] 有意保留差异已勾核
 - [ ] 验证通过

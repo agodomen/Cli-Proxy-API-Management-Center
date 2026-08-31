@@ -3,7 +3,7 @@ import { normalizeApiBase } from '@/utils/connection';
 
 function buildProbeBase(base: string): string {
   const normalized = normalizeApiBase(base).replace(/\/+$/, '');
-  return `${normalized}/api/charitable/probe`;
+  return `${normalized}/v0/cpamc/charitable/probe`;
 }
 
 const authConfig = (managementKey?: string) =>

@@ -3,7 +3,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import type { PaginationState } from '@/types';
+import type { PaginationState } from '@/external/types/visualConfig';
 
 export function usePagination<T>(
   items: T[],

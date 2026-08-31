@@ -1,4 +1,4 @@
-import { providersApi } from '@/services/api/providers';
+import { providersApi } from '@/external/services/api/providersExt';
 import type { ApiKeyEntry, GeminiKeyConfig, ModelAlias, OpenAIProviderConfig, ProviderKeyConfig } from '@/types/provider';
 import { listAllFilteredKeys } from './keyProbeService';
 import type { APIKey, Provider } from './types';

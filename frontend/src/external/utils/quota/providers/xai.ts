@@ -5,7 +5,8 @@
 import type { TFunction } from 'i18next';
 import type { AuthFileItem, XaiBillingConfig, XaiBillingSummary } from '@/types';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
-import { XAI_BILLING_URL, XAI_REQUEST_HEADERS } from '@/utils/quota/constants';
+import { XAI_REQUEST_HEADERS } from '@/utils/quota/constants';
+import { XAI_BILLING_URL } from '@/external/utils/quota/quotaExtension';
 import { createStatusError } from '@/utils/quota/formatters';
 import { normalizeAuthIndex, normalizeNumberValue, normalizeStringValue, parseXaiBillingPayload } from '@/utils/quota/parsers';
 

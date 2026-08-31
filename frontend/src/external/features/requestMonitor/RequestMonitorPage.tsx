@@ -2,6 +2,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } f
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import { useUsageData } from '@/external/features/monitoring/hooks/useUsageData';
+import { fetchConfigSection } from '@/external/utils/configSection';
 import {
   useMonitoringData,
   getRangeBounds,
@@ -20,7 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { authFilesApi, setStatusWithFallback } from '@/external/services/api/authFiles';
 import { usageServiceApi } from '@/external/services/api/usageService';
-import { providersApi } from '@/services/api/providers';
+import { providersApi } from '@/external/services/api/providersExt';
 import { buildLegacyAuthIndexAliases } from '@/external/features/monitoring/legacyAuthIndexAliases';
 import { AccountImportModal } from '@/external/features/requestMonitor/accountImport/AccountImportModal';
 import type { AccountImportResult } from '@/external/features/requestMonitor/accountImport/accountImportConverter';
@@ -900,7 +901,7 @@ export function RequestMonitorPage() {
         loadModelPrices(),
         loadApiKeyAliases(),
         refreshMeta(false),
-        fetchConfig('openai-compatibility', true),
+        fetchConfigSection('openai-compatibility', true),
       ]);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

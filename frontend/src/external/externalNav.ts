@@ -43,6 +43,11 @@ const externalNavIcons = {
     path('M4 19h16'),
     path('M4 5h16'),
   ),
+  modelPrice: navIcon(
+    circle(12, 12, 8),
+    path('M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8'),
+    path('M12 6v12'),
+  ),
   realtimeRequest: navIcon(path('M12 6v6l4 2'), circle(12, 12, 8)),
   inspection: navIcon(path('m3 21 6.5-6.5'), circle(11, 11, 6), path('m16 16 5 5')),
   serviceProviders: navIcon(
@@ -72,9 +77,27 @@ const externalNavIcons = {
     path('M9 15v4'),
   ),
   charitableDebug: navIcon(path('M10 2h4'), path('M12 14v4'), path('M4 13h16'), path('M6 13a6 6 0 1 1 12 0')),
+  pluginStore: navIcon(
+    rect(3, 4, 18, 6, { rx: 2 }),
+    rect(3, 14, 18, 6, { rx: 2 }),
+    path('M7 7h.01'),
+    path('M7 17h.01'),
+  ),
+  aiProviders: navIcon(
+    path('M12 2 2 7v10l10 5 10-5V7Z'),
+    path('M2 17l10 5 10-5'),
+    path('M2 12l10 5 10-5'),
+    path('M12 2v15'),
+  ),
   systemConfig: navIcon(
     circle(12, 12, 3),
     path('M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 10 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z'),
+  ),
+  systemOverview: navIcon(
+    rect(3, 3, 7, 7, { rx: 1 }),
+    rect(14, 3, 7, 7, { rx: 1 }),
+    rect(3, 14, 7, 7, { rx: 1 }),
+    rect(14, 14, 7, 7, { rx: 1 }),
   ),
 };
 
@@ -84,6 +107,30 @@ const externalNavIcons = {
  */
 export const externalNavGroups = [
   {
+    id: 'gateway',
+    labelKey: 'nav_groups.gateway',
+    items: [
+      {
+        path: '/ai/providers',
+        labelKey: 'nav.ai_providers_ext',
+        metaKey: 'nav_meta.ai_providers_ext',
+        icon: externalNavIcons.aiProviders,
+      },
+      {
+        path: '/auth/providers',
+        labelKey: 'nav.auth_providers',
+        metaKey: 'nav_meta.auth_providers',
+        icon: externalNavIcons.aiProviders,
+      },
+      {
+        path: '/plugin/store',
+        labelKey: 'nav.plugin_store',
+        metaKey: 'nav_meta.plugin_store',
+        icon: externalNavIcons.pluginStore,
+      },
+    ],
+  },
+  {
     id: 'monitoring',
     labelKey: 'nav_groups.monitoring',
     items: [
@@ -92,6 +139,12 @@ export const externalNavGroups = [
         labelKey: 'nav.monitoring_center',
         metaKey: 'nav_meta.monitoring_center',
         icon: externalNavIcons.monitoringCenter,
+      },
+      {
+        path: '/model/price',
+        labelKey: 'nav.model_price',
+        metaKey: 'nav_meta.model_price',
+        icon: externalNavIcons.modelPrice,
       },
       {
         path: '/realtime/request',
@@ -138,9 +191,27 @@ export const externalNavGroups = [
     ],
   },
   {
+    id: 'cluster',
+    labelKey: 'nav_groups.cluster',
+    items: [
+      {
+        path: '/cluster/settings',
+        labelKey: 'nav.cluster_settings',
+        metaKey: 'nav_meta.cluster_settings',
+        icon: externalNavIcons.monitoringCenter,
+      },
+    ],
+  },
+  {
     id: 'system',
     labelKey: 'nav_groups.system',
     items: [
+      {
+        path: '/system/overview',
+        labelKey: 'nav.system_overview',
+        metaKey: 'nav_meta.system_overview',
+        icon: externalNavIcons.systemOverview,
+      },
       {
         path: '/system/config',
         labelKey: 'nav.system_config',

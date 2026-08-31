@@ -9,7 +9,7 @@ import { HeaderInputList } from '@/external/components/ui/HeaderInputList';
 import { ModelInputList } from '@/external/components/ui/ModelInputList';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
-import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
+import { SecondaryScreenShell } from '@/external/components/common/SecondaryScreenShell';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import { useNotificationStore } from '@/stores';
 import { normalizeAuthIndex } from '@/utils/authIndex';

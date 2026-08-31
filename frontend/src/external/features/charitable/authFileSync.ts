@@ -1,4 +1,4 @@
-import { authFilesApi } from '@/services/api/authFiles';
+import { authFilesApi } from '@/external/services/api/authFiles';
 import type { AuthFileItem } from '@/types/authFile';
 import { createProvider, formatCharitableApiError, queryKeyByFileName, queryKeyByIndex, upsertKey } from './api';
 import { buildAuthInfo, parseAuthInfo, stableAuthJSON } from './authInfo';

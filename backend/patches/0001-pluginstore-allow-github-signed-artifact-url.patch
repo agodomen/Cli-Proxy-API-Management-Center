@@ -1,0 +1,59 @@
+Subject: [PATCH] pluginstore: allow GitHub CDN short-lived signed artifact URLs
+
+GitHub Release CDN redirects carry short-lived signature query parameters
+(token=, X-Amz-Signature=, ...). Upstream's runtime URL validation rejects any
+sensitive query parameter, which makes plugin artifact downloads fail once the
+CDN redirect is followed.
+
+The exemption is kept as narrow as possible:
+  - only RequestKindArtifact requests,
+  - only *.githubusercontent.com hosts (api.github.com stays excluded),
+  - registry / metadata requests and non-GitHub hosts keep rejecting sensitive
+    query parameters.
+
+This is the ONLY local modification to an upstream file. It cannot be pushed
+down into internal/core: internal/core's plugin store goes through
+sdk/pluginstore, whose install path calls this unexported validator.
+
+Status: to be submitted upstream. Once merged, delete this patch together with
+the matching entry in bin/upstream-allowlist.conf.
+Regression coverage: backend/internal/core/httpapi/plugin_store_patch_test.go
+Background: docs/architecture/backend-extension-architecture.md §6.4
+
+--- a/internal/pluginstore/auth.go
++++ b/internal/pluginstore/auth.go
+@@ -315,7 +315,7 @@
+ 	if parsed.User != nil {
+ 		return fmt.Errorf("plugin store url must not contain credentials")
+ 	}
+-	if hasSensitiveQueryParameter(parsed) {
++	if hasSensitiveQueryParameter(parsed) && !allowGitHubSignedArtifactURL(parsed, kind) {
+ 		return fmt.Errorf("plugin store url contains sensitive query parameter")
+ 	}
+ 	if strings.EqualFold(parsed.Scheme, "http") && !allowInsecurePluginStoreURL(auth, requestURL, kind) {
+@@ -324,6 +324,25 @@
+ 	return nil
+ }
+ 
++func allowGitHubSignedArtifactURL(parsed *url.URL, kind string) bool {
++	if parsed == nil || !strings.EqualFold(strings.TrimSpace(kind), RequestKindArtifact) {
++		return false
++	}
++	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
++	if host == "" || host == "api.github.com" {
++		return false
++	}
++	if strings.HasSuffix(host, ".githubusercontent.com") {
++		return true
++	}
++	switch host {
++	case "objects.githubusercontent.com", "release-assets.githubusercontent.com", "github-releases.githubusercontent.com":
++		return true
++	default:
++		return false
++	}
++}
++
+ func allowInsecurePluginStoreURL(auth []AuthConfig, requestURL string, kind string) bool {
+ 	item, ok := matchingAuthConfig(auth, requestURL, kind)
+ 	return ok && item.AllowInsecure

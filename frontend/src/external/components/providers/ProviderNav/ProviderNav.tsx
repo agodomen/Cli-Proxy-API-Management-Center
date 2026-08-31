@@ -59,13 +59,13 @@ export function ProviderNav() {
   const indicatorHasEnabledTransitionsRef = useRef(false);
 
   // Only show this quick-switch overlay on the AI Providers list page.
-  // Note: The app uses iOS-style stacked page transitions inside `/ai-providers/*`,
+  // Note: The app uses iOS-style stacked page transitions inside `/auth/providers/*`,
   // so this component can stay mounted while the user is on an edit route.
   const normalizedPathname =
     location.pathname.length > 1 && location.pathname.endsWith('/')
       ? location.pathname.slice(0, -1)
       : location.pathname;
-  const shouldShow = isCurrentLayer && normalizedPathname === '/ai-providers';
+  const shouldShow = isCurrentLayer && normalizedPathname === '/auth/providers';
 
   const getHeaderHeight = useCallback(() => {
     const header = document.querySelector('.main-header') as HTMLElement | null;

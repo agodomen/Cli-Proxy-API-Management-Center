@@ -24,7 +24,6 @@ import { DropdownMenu, type DropdownMenuItem } from '@/external/components/ui/Dr
 import {
   IconChevronDown,
   IconChevronUp,
-  IconChartLine,
   IconDownload,
   IconExternalLink,
   IconFileText,
@@ -36,12 +35,13 @@ import {
   IconSettings,
   IconSlidersHorizontal,
   IconTimer,
-  IconTrendingUp,
 } from '@/components/ui/icons';
 import {
+  IconChartLine,
   IconChevronRight,
   IconCrosshair,
   IconMoreVertical,
+  IconTrendingUp,
 } from '@/external/components/ui/icons';
 import {
   buildAccountRows,
@@ -1884,6 +1884,7 @@ export function MonitoringCenterPage() {
   const [usageExporting, setUsageExporting] = useState(false);
   const [usageImporting, setUsageImporting] = useState(false);
   const [priceModel, setPriceModel] = useState('');
+  const priceModelListId = useId();
   const [priceDraft, setPriceDraft] = useState<PriceDraft>(() => createPriceDraft());
   const [accountQuotaStates, setAccountQuotaStates] = useState<Record<string, AccountQuotaState>>(
     {}
@@ -2255,14 +2256,6 @@ export function MonitoringCenterPage() {
         .filter(Boolean)
         .sort((left, right) => left.localeCompare(right)),
     [filteredRows, modelPrices]
-  );
-
-  const priceModelOptions = useMemo(
-    () => [
-      { value: '', label: t('usage_stats.model_price_select_placeholder') },
-      ...syncPriceModels.map((value) => ({ value, label: value })),
-    ],
-    [syncPriceModels, t]
   );
 
   const authFilesByAuthIndex = useMemo(() => {
@@ -2973,7 +2966,8 @@ export function MonitoringCenterPage() {
   }, []);
 
   const handleSavePrice = useCallback(async () => {
-    if (!priceModel) {
+    const model = priceModel.trim();
+    if (!model) {
       return;
     }
 
@@ -2983,12 +2977,13 @@ export function MonitoringCenterPage() {
 
     await setModelPrices({
       ...modelPrices,
-      [priceModel]: {
+      [model]: {
         prompt,
         completion,
         cache,
       },
     });
+    setPriceModel(model);
     showNotification(t('usage_stats.model_price_saved'), 'success');
   }, [
     modelPrices,
@@ -4018,12 +4013,18 @@ export function MonitoringCenterPage() {
           <div className={styles.priceGrid}>
             <div className={`${styles.priceField} ${styles.priceFieldModel}`}>
               <label>{t('usage_stats.model_name')}</label>
-              <Select
+              <Input
                 value={priceModel}
-                options={priceModelOptions}
-                onChange={handlePriceModelChange}
-                ariaLabel={t('usage_stats.model_name')}
+                onChange={(event) => handlePriceModelChange(event.target.value)}
+                list={priceModelListId}
+                placeholder={t('usage_stats.model_price_select_placeholder')}
+                aria-label={t('usage_stats.model_name')}
               />
+              <datalist id={priceModelListId}>
+                {syncPriceModels.map((model) => (
+                  <option key={model} value={model} />
+                ))}
+              </datalist>
             </div>
             <div className={`${styles.priceField} ${styles.priceFieldPrompt}`}>
               <label>{`${t('usage_stats.model_price_prompt')} ($/1M)`}</label>

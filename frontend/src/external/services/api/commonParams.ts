@@ -42,7 +42,7 @@ const authHeaders = (managementKey?: string) =>
 
 export const commonParamsApi = {
   get: async (base: string, managementKey?: string): Promise<CommonParams> => {
-    const response = await axios.get<CommonParams>(buildUrl(base, '/api/common-params'), {
+    const response = await axios.get<CommonParams>(buildUrl(base, '/v0/cpamc/common-params'), {
       timeout: 15_000,
       headers: authHeaders(managementKey),
     });
@@ -57,7 +57,7 @@ export const commonParamsApi = {
     params: CommonParams,
     managementKey?: string
   ): Promise<CommonParams> => {
-    const response = await axios.put<CommonParams>(buildUrl(base, '/api/common-params'), params, {
+    const response = await axios.put<CommonParams>(buildUrl(base, '/v0/cpamc/common-params'), params, {
       timeout: 15_000,
       headers: authHeaders(managementKey),
     });
@@ -74,7 +74,7 @@ export const commonParamsApi = {
     managementKey?: string
   ): Promise<RefreshUserAgentResponse> => {
     const response = await axios.post<RefreshUserAgentResponse>(
-      buildUrl(base, '/api/common-params/refresh-user-agent'),
+      buildUrl(base, '/v0/cpamc/common-params/refresh-user-agent'),
       {
         field,
         currentUserAgent: currentUserAgent || '',

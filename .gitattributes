@@ -1,0 +1,4 @@
+# 前端构建产物，由 build.sh 从 frontend/dist/index.html 拷入并被 go:embed 引用。
+# 必须保持被 Git 跟踪（否则 go build 在未构建前端时会因 embed 失败），
+# 但标记为 generated + 不做文本 diff，避免 4MB 单行产物污染 review 与合并。
+backend/internal/core/httpapi/web/management.html -diff -merge linguist-generated=true

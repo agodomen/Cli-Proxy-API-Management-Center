@@ -1,3 +1,16 @@
+// Package main is the unified entry point for the CPAMC (CLI Proxy API
+// Management Center) binary. It serves two roles:
+//
+//  1. Management-center mode (default): starts the core HTTP API server
+//     (SQLite-backed management panel) with an embedded CLIProxyAPI engine
+//     via localengine.
+//  2. Community CLI mode: when invoked with community flags (e.g. -codex-login,
+//     -tui, -home-jwt), delegates to cli.Run(), which is generated from
+//     cmd/server/main.go by bin/gen-cli-mirror.sh.
+//
+// This design ensures a single binary covers both management-center and
+// community CLI use cases, while keeping cmd/server/main.go byte-identical to
+// upstream for community overlay sync.
 package main
 
 import (
@@ -11,6 +24,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/buildinfo"
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/cli"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/collector"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/httpapi"
@@ -19,6 +34,20 @@ import (
 )
 
 func main() {
+	// When community CLI flags are present, delegate to the community CLI entry
+	// logic generated from cmd/server/main.go.
+	if cli.HasCommunityFlags(os.Args[1:]) {
+		cli.Init()
+		cli.Run()
+		return
+	}
+
+	runManagementCenter()
+}
+
+// runManagementCenter starts the default management-center mode: core HTTP
+// API server + embedded CLIProxyAPI engine via localengine.
+func runManagementCenter() {
 	logManagementPasswordFromEnv()
 
 	cfg, err := config.Load()
@@ -73,6 +102,7 @@ func main() {
 	}
 	if localRuntime != nil {
 		apiServer.SetLocalEngineStatus(func() any { return localRuntime.Status() })
+		apiServer.SetLocalPluginRuntime(localRuntime.PluginRegistered, localRuntime.PluginBusy)
 	}
 
 	server := &http.Server{
@@ -159,3 +189,6 @@ func logManagementPasswordFromEnv() {
 	}
 	log.Printf("MANAGEMENT_PASSWORD=%s", password)
 }
+
+// Ensure buildinfo is referenced so -ldflags injection works in both modes.
+var _ = buildinfo.Version

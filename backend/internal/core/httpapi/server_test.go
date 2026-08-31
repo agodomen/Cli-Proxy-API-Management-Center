@@ -14,6 +14,7 @@ import (
 
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/collector"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
+	coreproxy "github.com/router-for-me/CLIProxyAPI/v7/internal/core/proxy"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/store"
 )
 
@@ -231,7 +232,7 @@ func TestUsageSummaryReturnsAggregatesWithoutDetails(t *testing.T) {
 	}`
 	postUsageImport(t, handler, payload)
 
-	req := httptest.NewRequest(http.MethodGet, "/v0/management/usage/summary", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/cpamc/usage/summary", nil)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -301,10 +302,10 @@ func TestUsageBreakdownPageEndpointsReturnPagination(t *testing.T) {
 	postUsageImport(t, handler, payload)
 
 	for _, path := range []string{
-		"/v0/management/usage/accounts?page=1&page_size=1",
-		"/v0/management/usage/api-keys?page=1&page_size=1",
-		"/v0/management/usage/realtime?page=1&page_size=1",
-		"/v0/management/usage/models?page=1&page_size=1",
+		"/v0/cpamc/usage/accounts?page=1&page_size=1",
+		"/v0/cpamc/usage/api-keys?page=1&page_size=1",
+		"/v0/cpamc/usage/realtime?page=1&page_size=1",
+		"/v0/cpamc/usage/models?page=1&page_size=1",
 	} {
 		t.Run(path, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, path, nil)
@@ -348,8 +349,8 @@ func TestUsageBreakdownPageEndpointsReturnPagination(t *testing.T) {
 func TestUsageBreakdownPageRejectsUnsafePageFilters(t *testing.T) {
 	handler := newTestHandler(t, "http://example.test", true)
 	for _, path := range []string{
-		"/v0/management/usage/accounts?page=1&page_size=501",
-		"/v0/management/usage/accounts?page=1&page_size=1&sort_key=timestamp_ms%20desc",
+		"/v0/cpamc/usage/accounts?page=1&page_size=501",
+		"/v0/cpamc/usage/accounts?page=1&page_size=1&sort_key=timestamp_ms%20desc",
 	} {
 		t.Run(path, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodGet, path, nil)
@@ -374,7 +375,7 @@ func postUsageImport(t *testing.T, handler http.Handler, payload string) struct 
 } {
 	t.Helper()
 
-	req := httptest.NewRequest(http.MethodPost, "/v0/management/usage/import", strings.NewReader(payload))
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/usage/import", strings.NewReader(payload))
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr := httptest.NewRecorder()
 
@@ -696,7 +697,7 @@ func TestSetupCanDisableRequestMonitoring(t *testing.T) {
 func TestModelPricesSaveAndLoad(t *testing.T) {
 	handler := newTestHandler(t, "http://example.test", true)
 	body := bytes.NewBufferString(`{"prices":{"gpt-test":{"prompt":1.25,"completion":2.5,"cache":0.1}}}`)
-	req := httptest.NewRequest(http.MethodPut, "/v0/management/model-prices", body)
+	req := httptest.NewRequest(http.MethodPut, "/v0/cpamc/model-prices", body)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr := httptest.NewRecorder()
 
@@ -706,7 +707,7 @@ func TestModelPricesSaveAndLoad(t *testing.T) {
 		t.Fatalf("save status = %d, body = %s", rr.Code, rr.Body.String())
 	}
 
-	req = httptest.NewRequest(http.MethodGet, "/v0/management/model-prices", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/model-prices", nil)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -733,11 +734,38 @@ func TestModelPricesSaveAndLoad(t *testing.T) {
 	}
 }
 
+func TestCompositeModelPricesSaveAndLoad(t *testing.T) {
+	handler := newTestHandler(t, "http://example.test", true)
+	body := bytes.NewBufferString(`{"prices":{"gpt-5.6":{"prompt":10,"completion":20,"cache":2},"gpt-5.4":{"prompt":4,"completion":8,"cache":1},"auto":{"mode":"composite","mappings":[{"model":"gpt-5.6","coefficient":0.8},{"model":"gpt-5.4","coefficient":0.2}],"prompt":0,"completion":0,"cache":0}}}`)
+	req := httptest.NewRequest(http.MethodPut, "/v0/cpamc/model-prices", body)
+	req.Header.Set("Authorization", "Bearer management-key")
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("save status = %d, body = %s", rr.Code, rr.Body.String())
+	}
+	var response struct {
+		Prices map[string]store.ModelPrice `json:"prices"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	auto := response.Prices["auto"]
+	if auto.Mode != store.ModelPriceModeComposite || len(auto.Mappings) != 2 {
+		t.Fatalf("composite definition = %#v", auto)
+	}
+	if auto.Prompt != 8.8 || auto.Completion != 17.6 || auto.Cache != 1.8 {
+		t.Fatalf("composite price = %#v", auto)
+	}
+}
+
 func TestAPIKeyAliasesSaveLoadAndDelete(t *testing.T) {
 	handler := newTestHandler(t, "http://example.test", true)
 	const hash = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	body := bytes.NewBufferString(`{"items":[{"apiKeyHash":"` + hash + `","alias":"Team A"}]}`)
-	req := httptest.NewRequest(http.MethodPut, "/v0/management/api-key-aliases", body)
+	req := httptest.NewRequest(http.MethodPut, "/v0/cpamc/api-key-aliases", body)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr := httptest.NewRecorder()
 
@@ -747,7 +775,7 @@ func TestAPIKeyAliasesSaveLoadAndDelete(t *testing.T) {
 		t.Fatalf("save status = %d, body = %s", rr.Code, rr.Body.String())
 	}
 
-	req = httptest.NewRequest(http.MethodGet, "/v0/management/api-key-aliases", nil)
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/api-key-aliases", nil)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -775,7 +803,7 @@ func TestAPIKeyAliasesSaveLoadAndDelete(t *testing.T) {
 	const otherHash = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
 	req = httptest.NewRequest(
 		http.MethodPut,
-		"/v0/management/api-key-aliases",
+		"/v0/cpamc/api-key-aliases",
 		bytes.NewBufferString(`{"items":[{"apiKeyHash":"`+otherHash+`","alias":" team a "}]}`),
 	)
 	req.Header.Set("Authorization", "Bearer management-key")
@@ -789,7 +817,7 @@ func TestAPIKeyAliasesSaveLoadAndDelete(t *testing.T) {
 		t.Fatalf("duplicate body = %s", rr.Body.String())
 	}
 
-	req = httptest.NewRequest(http.MethodDelete, "/v0/management/api-key-aliases/"+hash, nil)
+	req = httptest.NewRequest(http.MethodDelete, "/v0/cpamc/api-key-aliases/"+hash, nil)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -807,7 +835,7 @@ func TestAPIKeyAliasesActiveHashesMigration(t *testing.T) {
 
 	// 预置：orphanHash 关联 team-a（模拟编辑/删除密钥后留下的孤儿映射）。
 	seed := bytes.NewBufferString(`{"items":[{"apiKeyHash":"` + orphanHash + `","alias":"team-a"},{"apiKeyHash":"` + activeHash + `","alias":"team-b"}]}`)
-	req := httptest.NewRequest(http.MethodPut, "/v0/management/api-key-aliases", seed)
+	req := httptest.NewRequest(http.MethodPut, "/v0/cpamc/api-key-aliases", seed)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -817,7 +845,7 @@ func TestAPIKeyAliasesActiveHashesMigration(t *testing.T) {
 
 	// 编辑/重建场景：新 hash 想复用 team-a，orphanHash 不在活跃集合，应放行并清理孤儿。
 	migrate := bytes.NewBufferString(`{"items":[{"apiKeyHash":"` + newHash + `","alias":"team-a"}],"activeApiKeyHashes":["` + newHash + `","` + activeHash + `"]}`)
-	req = httptest.NewRequest(http.MethodPut, "/v0/management/api-key-aliases", migrate)
+	req = httptest.NewRequest(http.MethodPut, "/v0/cpamc/api-key-aliases", migrate)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -850,7 +878,7 @@ func TestAPIKeyAliasesActiveHashesMigration(t *testing.T) {
 
 	// 真冲突：被占用方仍在活跃集合，应返回 api_key_alias_duplicate。
 	conflict := bytes.NewBufferString(`{"items":[{"apiKeyHash":"` + newHash + `","alias":"team-b"}],"activeApiKeyHashes":["` + newHash + `","` + activeHash + `"]}`)
-	req = httptest.NewRequest(http.MethodPut, "/v0/management/api-key-aliases", conflict)
+	req = httptest.NewRequest(http.MethodPut, "/v0/cpamc/api-key-aliases", conflict)
 	req.Header.Set("Authorization", "Bearer management-key")
 	rr = httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -889,7 +917,7 @@ func TestModelPricesSyncFromLiteLLMFormat(t *testing.T) {
 	handler := newTestHandler(t, "http://example.test", true)
 	req := httptest.NewRequest(
 		http.MethodPost,
-		"/v0/management/model-prices/sync",
+		"/v0/cpamc/model-prices/sync",
 		bytes.NewBufferString(`{"models":["gpt-test"]}`),
 	)
 	req.Header.Set("Authorization", "Bearer management-key")
@@ -1047,16 +1075,16 @@ func TestFetchCPAProxyURLUsesCacheAcrossCalls(t *testing.T) {
 	}
 }
 
-func TestNewHTTPClientWithProxyInjectsTransport(t *testing.T) {
-	noProxy := newHTTPClientWithProxy("", time.Second)
+func TestBuildHTTPClientInjectsTransport(t *testing.T) {
+	noProxy := coreproxy.BuildHTTPClient(coreproxy.Resolution{}, time.Second)
 	if noProxy.Transport != nil {
 		t.Fatalf("empty proxy should leave default transport")
 	}
-	invalid := newHTTPClientWithProxy("not a url", time.Second)
+	invalid := coreproxy.BuildHTTPClient(coreproxy.Resolution{ProxyURL: "not a url"}, time.Second)
 	if invalid.Transport != nil {
 		t.Fatalf("invalid proxy should leave default transport")
 	}
-	valid := newHTTPClientWithProxy("http://proxy.local:1080", time.Second)
+	valid := coreproxy.BuildHTTPClient(coreproxy.Resolution{ProxyURL: "http://proxy.local:1080"}, time.Second)
 	transport, ok := valid.Transport.(*http.Transport)
 	if !ok {
 		t.Fatalf("valid proxy should set *http.Transport, got %T", valid.Transport)
@@ -1098,7 +1126,7 @@ func TestModelPricesSyncReportsUnmatchedAndCaseInsensitiveMatch(t *testing.T) {
 	handler := newTestHandler(t, "http://example.test", true)
 	req := httptest.NewRequest(
 		http.MethodPost,
-		"/v0/management/model-prices/sync",
+		"/v0/cpamc/model-prices/sync",
 		bytes.NewBufferString(`{"models":["claude-3.5-sonnet","GEMINI/Gemini-2.5-Flash","mystery-model"]}`),
 	)
 	req.Header.Set("Authorization", "Bearer management-key")

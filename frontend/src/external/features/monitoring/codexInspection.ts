@@ -4,16 +4,14 @@ import { apiCallApi, getApiCallErrorMessage, type ApiCallResult } from '@/servic
 import { requestCodexUsageRaw } from '@/external/services/api/codexQuota';
 import type { AuthFileItem, CodexRateLimitInfo } from '@/types';
 import type { Config } from '@/external/types/config';
-import {
-  ANTIGRAVITY_QUOTA_URLS,
+import {  ANTIGRAVITY_QUOTA_URLS,
   ANTIGRAVITY_REQUEST_HEADERS,
   CLAUDE_REQUEST_HEADERS,
   CLAUDE_USAGE_URL,
   KIMI_REQUEST_HEADERS,
   KIMI_USAGE_URL,
-  XAI_BILLING_URL,
-  XAI_REQUEST_HEADERS,
-} from '@/utils/quota/constants';
+  XAI_REQUEST_HEADERS,} from '@/utils/quota/constants';
+import { XAI_BILLING_URL } from '@/external/utils/quota/quotaExtension';
 import {
   normalizeNumberValue,
   resolveAuthProvider,

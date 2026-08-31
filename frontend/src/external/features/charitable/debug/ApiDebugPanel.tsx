@@ -254,7 +254,7 @@ const resolvePath = (template: string, values: Record<string, string>) =>
   });
 
 const buildPreviewUrl = (base: string, path: string, query: Record<string, string>) => {
-  const normalized = `${base.replace(/\/+$/, '')}/api/charitable${path.startsWith('/') ? path : `/${path}`}`;
+  const normalized = `${base.replace(/\/+$/, '')}/v0/cpamc/charitable${path.startsWith('/') ? path : `/${path}`}`;
   const search = new URLSearchParams(query).toString();
   return search ? `${normalized}?${search}` : normalized;
 };

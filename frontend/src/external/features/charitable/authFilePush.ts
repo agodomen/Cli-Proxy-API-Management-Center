@@ -1,4 +1,4 @@
-import { authFilesApi } from '@/services/api/authFiles';
+import { authFilesApi } from '@/external/services/api/authFiles';
 import { parseAuthInfo, stableAuthJSON } from './authInfo';
 import { tryParseParamObject } from './components/ParamEditor/paramUtils';
 import type { APIKey, Provider } from './types';

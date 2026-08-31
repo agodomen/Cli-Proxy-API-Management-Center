@@ -2,24 +2,35 @@
 
 ## 项目定位
 
-CLIProxyAPI 已经成为当前项目 Go 服务的原生核心代码，不再作为 `backend`（历史曾为嵌套 `backend/cliproxyapi`） 嵌套模块或外部依赖存在。社区源码中的 `cmd`、`internal`、`sdk`、`test` 和 `examples` 已提升到后端模块一级目录（现为 `backend/`），并统一使用当前项目模块路径 `github.com/agodomen/Cli-Proxy-API-Management-Center/backend`。
+CLIProxyAPI 已经成为当前项目 Go 服务的原生核心代码，不再作为嵌套模块或外部依赖存在。社区源码中的 `cmd`、`internal`、`sdk`、`test` 和 `examples` 镜像到 `backend/`，Go module path 保持社区原值 `github.com/router-for-me/CLIProxyAPI/v7`。
 
-当前项目可以直接修改协议转换、认证、调度、执行器、插件、模型注册和管理 API。后续社区更新作为实现参考，通过差异分析和人工移植进入当前架构，不再使用覆盖式源码同步。
+二次开发代码集中在 `internal/core/` 和 `cmd/cpamc/`。社区更新通过 `bin/sync-community.sh` 在候选树镜像覆盖，验证成功后才替换当前挂载点。
 
 ## 上游基线
 
 - 社区仓库：<https://github.com/router-for-me/CLIProxyAPI>
 - 初始融合提交：`5afc0f1d5e9ed8d47809a1bd1f54834bc7e75375`
-- 最近同步提交：`27fc3169bb4eb0509e3aba7dde4ab80286b0ae65`（`v7.2.100`，2026-07-26）
-- 社区原模块：`github.com/router-for-me/CLIProxyAPI/v7`
-- 当前模块：`github.com/agodomen/Cli-Proxy-API-Management-Center/backend`
+- 最近同步提交：`c9417c8ae9b16fabc0386ca35d36f13bf8b1d678`（`v7.2.104`，2026-08-13）
+- 当前模块：`github.com/router-for-me/CLIProxyAPI/v7`
 - Go 版本：1.26
 - 上游许可证：MIT，见 `LICENSE.CLIProxyAPI`
 
 精确来源记录在 `backend/.cliproxyapi-upstream-ref`（成功同步后更新；规范见 `../docs/architecture/community-sync.md`）。
 
+### 2026-08-13 双上游同步记录
 
-### 2026-07-27 同步记录
+- 后端：`v7.2.104` / `c9417c8ae9b16fabc0386ca35d36f13bf8b1d678`
+- 前端：`v1.20.0` / `1708314bc7a27e0ad9ef86b083e28e4e00aceeb1`
+- 同步方式：`bin/sync-community.sh --force --confirm-manifest` 构建候选树，后端执行 `GOMAXPROCS=1 go test -p 1 ./...`，前端执行冻结 lockfile 安装和生产构建，全部通过后替换挂载点
+- 后端社区镜像：`internal/config`、management plugin-store handler、server option/route 等旧 plugin-proxy 注入点均恢复为社区原码
+- 插件代理：配置迁入 SQLite `plugin_proxy_v1`，API 改为 `/v0/management/cpamc/plugin-proxy*`
+- 代理版插件商店：由 `internal/core/httpapi/plugin_store.go` 提供 `/v0/management/cpamc/plugin-store*`，复用社区 `sdk/pluginstore`，不修改社区 management handler
+- 后端 manifest：仅保留 `internal/pluginstore/auth.go` 的 artifact 类型 GitHub CDN 临时签名 URL 兼容补丁
+- 运行时状态：`localengine` 显式持有社区 `pluginhost.Host`，只读桥接 `registered/busy` 到 core 插件商店；不修改社区 SDK 或 management handler
+- 前端商业排除：不接入 `/quick-start`、`SponsorQuickStartPanel` 和 AI Providers “快速填入”交互；运行入口保持 `src/external/main.tsx`
+
+
+### 2026-07-27 同步记录（历史架构）
 
 - 对比范围：`285322cd97add6b21f60c267debec44fbec74060..27fc3169bb4eb0509e3aba7dde4ab80286b0ae65`
 - 社区提交数：31
@@ -30,7 +41,7 @@ CLIProxyAPI 已经成为当前项目 Go 服务的原生核心代码，不再作�
   - Plugin Store 独立代理（`plugin-proxy` 配置、管理 API、UI 与 `plugin_store` 出站代理）
   - 认证管理兼容文件（安全子路径、OpenAI Compatibility 单凭证禁用、`disabled` 元数据兼容）
   - `modernc.org/sqlite` 运营库依赖
-- 前端社区基线保持 `v1.18.6` / `3738c0b7ff21ce7e1423795a26769fff05fd81d6`，无需覆盖；Level 2 注入钩子与商业入口排除策略仍有效
+- 当时前端社区基线为 `v1.18.6` / `3738c0b7ff21ce7e1423795a26769fff05fd81d6`；现已由 2026-08-13 记录取代
 - 依赖策略：以社区 `go.mod`/`go.sum` 为基线，追加 `modernc.org/sqlite v1.34.5` 并 `go mod tidy`
 
 ### 2026-07-24 同步记录
@@ -80,7 +91,7 @@ backend/
 ## 统一运行
 
 ```bash
-cd services
+cd backend
 go run ./cmd/cpamc
 ```
 
@@ -99,8 +110,8 @@ go run ./cmd/cpamc
 
 ```bash
 # 统一服务与全部核心包
-cd services
-go test ./...
+cd backend
+GOMAXPROCS=1 go test -p 1 ./...
 go build ./...
 
 # 社区命令兼容入口
@@ -119,14 +130,14 @@ bin/compare-cliproxyapi.sh \
   --ref main
 ```
 
-脚本会把社区自引用临时转换为当前模块路径，再对比一级 `cmd`、`internal`、`sdk`、`test` 和配置模板。脚本只输出差异，不覆盖当前项目代码。
+脚本对比一级 `cmd`、`internal`、`sdk`、`test` 和配置模板。脚本只输出差异，不覆盖当前项目代码。
 
 处理社区更新时应：
 
 1. 判断变化是否适合当前 SQLite 和统一运行架构。
-2. 将需要的行为重新实现在当前一级目录中。
+2. 优先将需要的行为重新实现在 `internal/core/`，并定义 `/v0/management/cpamc/*` 新路径。
 3. 保持 `/v0`、`/v1`、SSE、WebSocket、OAuth 和插件 ABI 兼容。
 4. 同时运行当前管理中心测试和 CLIProxyAPI 协议测试。
 5. 更新 `.cliproxyapi-upstream-ref` 和架构文档中的参考提交。
 
-当前项目不追求与社区文件逐行一致，而是追求外部协议兼容、实现可参考以及本地架构可持续演进。
+社区镜像代码以逐文件一致为默认目标；只有 `bin/sync-manifest.conf` 中经过人工确认的极小差异允许保留。

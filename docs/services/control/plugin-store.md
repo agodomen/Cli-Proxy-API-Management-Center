@@ -40,3 +40,12 @@
 - 加速器只改写可下载的 GitHub 资源（`github.com` releases、`raw.githubusercontent.com`、CDN 等），**不会**改写 `api.github.com` 元数据请求，避免公共加速器共享出口 IP 触发 GitHub REST 限流 403。
 - 注册表/清单中声明的永久 artifact URL 仍禁止携带 `token`/`api_key` 等敏感 query，避免把长期密钥写进配置。
 
+## 连接地址与 CPAMC 扩展 API 回退
+
+插件商店、插件代理等二开功能调用 `/v0/cpamc/*` 扩展 API，该路由**只存在于 cpamc 管理后端**（默认 `:18317`），外部 CLIProxyAPI 上没有这些路由。
+
+- 登录时填写的"服务器地址"（apiBase）若指向外部 CLIProxyAPI（external-cpa 直连用法），`/v0/cpamc/*` 请求会得到 404，页面曾因此误报"当前后端未暴露插件商店 API"。
+- 前端 `apiClient` 的 cpamc 请求族现在会在收到 404 时自动改用**面板自身 origin**（即提供 `/management.html` 的 cpamc 后端）重试一次；回退请求不经过全局拦截器，其 401 以普通错误呈现，不会触发全局登出。
+- 推荐配置：面板由 cpamc 后端提供时，登录连接地址直接填面板地址（如 `http://<host>:18317`），CPA 上游连接通过系统配置/setup 向导保存到后端，由 cpamc 统一代理 `/v0/management/*`。
+- 回退仍失败（面板 origin 也没有扩展路由）时，页面保留"未暴露插件商店 API"提示，此时应确认部署的是包含插件商店接口的 cpamc 构建。
+

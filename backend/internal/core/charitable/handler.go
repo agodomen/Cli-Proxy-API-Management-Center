@@ -17,11 +17,15 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/httputil"
 )
 
+// CharitableRoutesBase is the base path for all charitable secondary-dev routes.
+const CharitableRoutesBase = "/v0/cpamc/charitable"
+
 // ── Handler ──
 
 type Handler struct {
-	store   *CharitableStore
-	console *SQLConsole
+	store              *CharitableStore
+	console            *SQLConsole
+	subscriptionClient *http.Client
 }
 
 func NewHandler(store *CharitableStore) *Handler {
@@ -29,42 +33,54 @@ func NewHandler(store *CharitableStore) *Handler {
 }
 
 func NewHandlerWithConsole(store *CharitableStore, console *SQLConsole) *Handler {
-	return &Handler{store: store, console: console}
+	return &Handler{
+		store:              store,
+		console:            console,
+		subscriptionClient: &http.Client{Timeout: 20 * time.Second},
+	}
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/charitable/channels", h.handleChannels)
-	mux.HandleFunc("/api/charitable/channels/", h.handleChannelByID)
-	mux.HandleFunc("/api/charitable/providers", h.handleProviders)
-	mux.HandleFunc("/api/charitable/providers/", h.handleProviderByID)
-	mux.HandleFunc("/api/charitable/keys/batch/", h.handleKeyBatch)
-	mux.HandleFunc("/api/charitable/keys/query", h.handleKeyQuery)
-	mux.HandleFunc("/api/charitable/keys/upsert", h.handleKeyUpsert)
-	mux.HandleFunc("/api/charitable/keys/statuses", h.handleKeyStatusCounts)
-	mux.HandleFunc("/api/charitable/keys", h.handleKeys)
-	mux.HandleFunc("/api/charitable/keys/", h.handleKeyByID)
-	mux.HandleFunc("/api/charitable/proxies", h.handleProxies)
-	mux.HandleFunc("/api/charitable/proxies/query", h.handleProxyQuery)
-	mux.HandleFunc("/api/charitable/proxies/upsert", h.handleProxyUpsert)
-	mux.HandleFunc("/api/charitable/proxies/batch/", h.handleProxyBatch)
-	mux.HandleFunc("/api/charitable/proxies/probe", h.handleProxyProbe)
-	mux.HandleFunc("/api/charitable/proxies/site-test", h.handleProxySiteTest)
-	mux.HandleFunc("/api/charitable/proxies/", h.handleProxyByID)
+	base := CharitableRoutesBase
+	mux.HandleFunc(base+"/channels", h.handleChannels)
+	mux.HandleFunc(base+"/channels/", h.handleChannelByID)
+	mux.HandleFunc(base+"/providers", h.handleProviders)
+	mux.HandleFunc(base+"/providers/", h.handleProviderByID)
+	mux.HandleFunc(base+"/keys/batch/", h.handleKeyBatch)
+	mux.HandleFunc(base+"/keys/query", h.handleKeyQuery)
+	mux.HandleFunc(base+"/keys/upsert", h.handleKeyUpsert)
+	mux.HandleFunc(base+"/keys/statuses", h.handleKeyStatusCounts)
+	mux.HandleFunc(base+"/keys", h.handleKeys)
+	mux.HandleFunc(base+"/keys/", h.handleKeyByID)
+	mux.HandleFunc(base+"/proxies", h.handleProxies)
+	mux.HandleFunc(base+"/proxies/query", h.handleProxyQuery)
+	mux.HandleFunc(base+"/proxies/upsert", h.handleProxyUpsert)
+	mux.HandleFunc(base+"/proxies/batch/", h.handleProxyBatch)
+	mux.HandleFunc(base+"/proxies/probe", h.handleProxyProbe)
+	mux.HandleFunc(base+"/proxies/site-test", h.handleProxySiteTest)
+	mux.HandleFunc(base+"/proxies/subscriptions/resolve-urls", h.handleResolveClashSubscriptionURLs)
+	mux.HandleFunc(base+"/proxies/subscriptions", h.handleClashSubscriptions)
+	mux.HandleFunc(base+"/proxies/subscriptions/", h.handleClashSubscriptionByID)
+	// Public feed endpoint. The outer HTTP server deliberately skips management
+	// authorization for this exact secondary-development path after validating
+	// the subscription token and its time window here.
+	mux.HandleFunc(base+"/subscriptions/", h.handlePublicClashSubscription)
+	mux.HandleFunc(base+"/proxies/", h.handleProxyByID)
 
 	// SQL debug console
-	mux.HandleFunc("/api/charitable/debug/databases", h.handleDebugDatabases)
-	mux.HandleFunc("/api/charitable/debug/databases/", h.handleDebugDatabaseByID)
-	mux.HandleFunc("/api/charitable/debug/query", h.handleDebugQuery)
+	mux.HandleFunc(base+"/debug/databases", h.handleDebugDatabases)
+	mux.HandleFunc(base+"/debug/databases/", h.handleDebugDatabaseByID)
+	mux.HandleFunc(base+"/debug/query", h.handleDebugQuery)
 
 	// Key debug console
-	mux.HandleFunc("/api/charitable/debug/key/settings", h.handleKeyDebugSettings)
-	mux.HandleFunc("/api/charitable/debug/key/extract", h.handleKeyDebugExtract)
-	mux.HandleFunc("/api/charitable/debug/key/models", h.handleKeyDebugModels)
-	mux.HandleFunc("/api/charitable/debug/key/probe", h.handleKeyDebugProbe)
-	mux.HandleFunc("/api/charitable/debug/key/save", h.handleKeyDebugSave)
+	mux.HandleFunc(base+"/debug/key/settings", h.handleKeyDebugSettings)
+	mux.HandleFunc(base+"/debug/key/extract", h.handleKeyDebugExtract)
+	mux.HandleFunc(base+"/debug/key/models", h.handleKeyDebugModels)
+	mux.HandleFunc(base+"/debug/key/probe", h.handleKeyDebugProbe)
+	mux.HandleFunc(base+"/debug/key/save", h.handleKeyDebugSave)
 
 	// Service-provider sync
-	mux.HandleFunc("/api/charitable/sync/service-providers", h.handleSyncServiceProviders)
+	mux.HandleFunc(base+"/sync/service-providers", h.handleSyncServiceProviders)
 }
 
 // ── Channel Handlers ──
@@ -103,7 +119,7 @@ func (h *Handler) handleChannels(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleChannelByID(w http.ResponseWriter, r *http.Request) {
-	id, err := parsePathID(r.URL.Path, "/api/charitable/channels/")
+	id, err := parsePathID(r.URL.Path, CharitableRoutesBase+"/channels/")
 	if err != nil {
 		writeCharitableError(w, http.StatusBadRequest, "invalid_id")
 		return
@@ -185,7 +201,7 @@ func (h *Handler) handleProviders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleProviderByID(w http.ResponseWriter, r *http.Request) {
-	id, err := parsePathID(r.URL.Path, "/api/charitable/providers/")
+	id, err := parsePathID(r.URL.Path, CharitableRoutesBase+"/providers/")
 	if err != nil {
 		writeCharitableError(w, http.StatusBadRequest, "invalid_id")
 		return
@@ -234,7 +250,7 @@ func (h *Handler) handleKeyBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trimmed := strings.TrimRight(r.URL.Path, "/")
-	suffix := strings.TrimPrefix(trimmed, "/api/charitable/keys/batch/")
+	suffix := strings.TrimPrefix(trimmed, CharitableRoutesBase+"/keys/batch/")
 
 	switch suffix {
 	case "delete":
@@ -449,7 +465,7 @@ func (h *Handler) handleKeyUpsert(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) handleKeyByID(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimRight(r.URL.Path, "/")
-	suffix := strings.TrimPrefix(path, "/api/charitable/keys/")
+	suffix := strings.TrimPrefix(path, CharitableRoutesBase+"/keys/")
 	parts := strings.SplitN(suffix, "/", 2)
 
 	id, err := strconv.ParseInt(parts[0], 10, 64)
@@ -775,7 +791,7 @@ func (h *Handler) handleProxyUpsert(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) handleProxyByID(w http.ResponseWriter, r *http.Request) {
-	id, err := parsePathID(r.URL.Path, "/api/charitable/proxies/")
+	id, err := parsePathID(r.URL.Path, CharitableRoutesBase+"/proxies/")
 	if err != nil {
 		writeCharitableError(w, http.StatusBadRequest, "invalid_id")
 		return
@@ -827,7 +843,15 @@ func (h *Handler) handleProxyBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	suffix := strings.TrimPrefix(strings.TrimRight(r.URL.Path, "/"), "/api/charitable/proxies/batch/")
+	suffix := strings.TrimPrefix(strings.TrimRight(r.URL.Path, "/"), CharitableRoutesBase+"/proxies/batch/")
+	if suffix == "import" {
+		h.handleProxyBatchImport(w, r)
+		return
+	}
+	if suffix == "delete-by-urls" {
+		h.handleProxyBatchDeleteByURLs(w, r)
+		return
+	}
 	if suffix != "delete" {
 		writeCharitableError(w, http.StatusNotFound, "unknown_batch_action")
 		return
@@ -855,6 +879,73 @@ func (h *Handler) handleProxyBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, map[string]int64{"deleted": deleted})
+}
+
+func (h *Handler) handleProxyBatchDeleteByURLs(w http.ResponseWriter, r *http.Request) {
+	var request struct {
+		Content string   `json:"content"`
+		URLs    []string `json:"urls"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeCharitableError(w, http.StatusBadRequest, "invalid_json")
+		return
+	}
+	values := normalizeProxyDeleteURLs(request.Content, request.URLs)
+	if len(values) == 0 {
+		writeCharitableError(w, http.StatusBadRequest, "proxy_urls_required")
+		return
+	}
+	if len(values) > 500 {
+		writeCharitableError(w, http.StatusBadRequest, "batch_limit_exceeded")
+		return
+	}
+
+	matchedIDs := make([]int64, 0, len(values))
+	missing := make([]string, 0)
+	for _, value := range values {
+		ids, err := h.store.GetProxyIDsByValue(r.Context(), value)
+		if err == nil {
+			matchedIDs = append(matchedIDs, ids...)
+			continue
+		}
+		if err.Error() == "proxy_not_found" {
+			missing = append(missing, value)
+			continue
+		}
+		writeCharitableError(w, http.StatusInternalServerError, "request_failed")
+		return
+	}
+	deleted, err := h.store.BatchDeleteProxies(r.Context(), matchedIDs)
+	if err != nil {
+		writeCharitableError(w, http.StatusInternalServerError, "request_failed")
+		return
+	}
+	httputil.WriteJSON(w, http.StatusOK, map[string]any{
+		"total":   len(values),
+		"matched": len(matchedIDs),
+		"deleted": deleted,
+		"missing": missing,
+	})
+}
+
+func normalizeProxyDeleteURLs(content string, values []string) []string {
+	if strings.TrimSpace(content) != "" {
+		values = strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
+	}
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || !strings.Contains(value, "://") {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
 }
 
 type proxyProbeResult struct {
@@ -1007,7 +1098,7 @@ func defaultProxyPort(scheme string) string {
 // ── Helpers ──
 
 // parsePathID extracts a numeric ID from the URL path.
-// e.g., path="/api/charitable/channels/42", prefix="/api/charitable/channels/" → 42
+// e.g., path=CharitableRoutesBase+"/channels/42", prefix=CharitableRoutesBase+"/channels/" → 42
 func parsePathID(path, prefix string) (int64, error) {
 	raw := strings.TrimPrefix(strings.TrimRight(path, "/"), prefix)
 	return strconv.ParseInt(raw, 10, 64)
@@ -1140,7 +1231,7 @@ func (h *Handler) handleDebugDatabaseByID(w http.ResponseWriter, r *http.Request
 	// Paths:
 	//   /api/charitable/debug/databases/{id}/schema
 	//   /api/charitable/debug/databases/{id}/tables/{table}/preview
-	const prefix = "/api/charitable/debug/databases/"
+	const prefix = CharitableRoutesBase+"/debug/databases/"
 	rest := strings.TrimPrefix(strings.TrimRight(r.URL.Path, "/"), strings.TrimRight(prefix, "/"))
 	rest = strings.TrimPrefix(rest, "/")
 	if rest == "" {

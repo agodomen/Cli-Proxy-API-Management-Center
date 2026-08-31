@@ -39,6 +39,7 @@ import {
   IconRefreshCw,
   IconSearch,
   IconTrash2,
+  IconUpload,
 } from '../serviceProviders/ui/icons';
 import { copyToClipboard } from '../serviceProviders/utils/clipboard';
 import { ParamEditor } from './components/ParamEditor/ParamEditor';
@@ -56,12 +57,59 @@ import {
   type ProxyPrivacy,
   withProxyPrivacy,
 } from './proxyInfo';
+import { ProxyImportSheet } from './components/ProxyImportSheet';
+import { ProxyURLDeleteSheet } from './components/ProxyURLDeleteSheet';
+import { ClashSubscriptionsPanel } from './components/ClashSubscriptionsPanel';
+import { GlyphData, GlyphSliders, MicroIcon } from './debug/MicroIcon';
+import debugStyles from './debug/DebugPage.module.scss';
+
+type ProxySection = 'nodes' | 'subscriptions';
+
+function ProxyTabs({ active, onChange }: { active: ProxySection; onChange: (value: ProxySection) => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.headerTabs} role="tablist">
+      <div className={`${debugStyles.floatCapsule} ${styles.tabCapsule}`}>
+        <div className={debugStyles.floatGroup}>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={active === 'nodes'}
+            className={`${debugStyles.floatBtn} ${active === 'nodes' ? `${debugStyles.floatBtnActive} ${debugStyles.floatBtnBlue}` : ''}`}
+            onClick={() => onChange('nodes')}
+          >
+            <MicroIcon tone={active === 'nodes' ? 'blue' : 'neutral'} active={active === 'nodes'} size={15}>
+              <GlyphSliders />
+            </MicroIcon>
+            <span className={debugStyles.floatBtnLabel}>{t('charitable.proxy.tabs.nodes')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={active === 'subscriptions'}
+            className={`${debugStyles.floatBtn} ${active === 'subscriptions' ? `${debugStyles.floatBtnActive} ${debugStyles.floatBtnBlue}` : ''}`}
+            onClick={() => onChange('subscriptions')}
+          >
+            <MicroIcon tone={active === 'subscriptions' ? 'blue' : 'neutral'} active={active === 'subscriptions'} size={15}>
+              <GlyphData />
+            </MicroIcon>
+            <span className={debugStyles.floatBtnLabel}>{t('charitable.proxy.tabs.subscriptions')}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ProxiesPage() {
   const { t } = useTranslation();
   const baseUrl = useUsageServiceStore(s => s.serviceBase);
   const managementKey = useAuthStore(s => s.managementKey);
   const { showNotification, showConfirmation } = useNotificationStore();
+
+  const [activeSection, setActiveSection] = useState<ProxySection>('nodes');
+  const [importOpen, setImportOpen] = useState(false);
+  const [deleteByURLOpen, setDeleteByURLOpen] = useState(false);
 
   const [items, setItems] = useState<ProxyDetail[]>([]);
   const [totalItems, setTotalItems] = useState(0);
@@ -411,10 +459,23 @@ export function ProxiesPage() {
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
+  if (activeSection === 'subscriptions') {
+    return (
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <h1 className={styles.title}>{t('charitable.proxy.subscription.title')}</h1>
+          <ProxyTabs active={activeSection} onChange={setActiveSection} />
+        </header>
+        <ClashSubscriptionsPanel baseUrl={baseUrl} managementKey={managementKey} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <h1 className={styles.title}>{t('charitable.proxies')}</h1>
+        <ProxyTabs active={activeSection} onChange={setActiveSection} />
         <div className={styles.actions}>
           <button className={styles.btnSecondary} onClick={() => void handleCopyClash()} disabled={exporting || copyingClash || totalItems === 0}>
             {copyingClash ? <IconLoader2 size={16} /> : <IconCopy size={16} />}
@@ -434,6 +495,12 @@ export function ProxiesPage() {
           </button>
           <button className={styles.btnSecondary} onClick={fetchData} disabled={loading}>
             <IconRefreshCw size={16} /> {t('charitable.refresh')}
+          </button>
+          <button className={styles.btnSecondary} onClick={() => setImportOpen(true)}>
+            <IconUpload size={16} /> {t('charitable.proxy.import.action')}
+          </button>
+          <button className={styles.btnDanger} onClick={() => setDeleteByURLOpen(true)}>
+            <IconTrash2 size={16} /> {t('charitable.proxy.deleteByURL.action')}
           </button>
           <button className={styles.btnPrimary} onClick={openCreate}>
             <IconPlus size={16} /> {t('charitable.create')}
@@ -780,6 +847,22 @@ export function ProxiesPage() {
         open={copyTargets.length > 0}
         values={copyTargets.map((item) => item.proxy_value)}
         onClose={() => setCopyTargets([])}
+      />
+
+      <ProxyImportSheet
+        open={importOpen}
+        baseUrl={baseUrl}
+        managementKey={managementKey}
+        onClose={() => setImportOpen(false)}
+        onImported={fetchData}
+      />
+
+      <ProxyURLDeleteSheet
+        open={deleteByURLOpen}
+        baseUrl={baseUrl}
+        managementKey={managementKey}
+        onClose={() => setDeleteByURLOpen(false)}
+        onDeleted={fetchData}
       />
 
       <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={t('charitable.delete')}>

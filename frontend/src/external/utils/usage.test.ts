@@ -140,6 +140,30 @@ describe('calculateCost model price preference', () => {
     );
     expect(cost).toBeCloseTo(50);
   });
+
+  it('prefers a composite requested alias over the resolved model', () => {
+    const cost = calculateCost(
+      {
+        tokens: { input_tokens: 1_000_000, output_tokens: 0 },
+        __modelName: 'auto',
+        __resolvedModel: 'gpt-5.5',
+      },
+      {
+        ...prices,
+        auto: {
+          prompt: 8.8,
+          completion: 17.6,
+          cache: 1.8,
+          mode: 'composite',
+          mappings: [
+            { model: 'gpt-5.6', coefficient: 0.8 },
+            { model: 'gpt-5.4', coefficient: 0.2 },
+          ],
+        },
+      }
+    );
+    expect(cost).toBeCloseTo(8.8);
+  });
 });
 
 describe('model price index fallback matching', () => {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/charitable"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/httputil"
 )
 
@@ -20,12 +21,13 @@ func NewHandler(manager *Manager, store *Store) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/api/charitable/probe/config", h.handleConfig)
-	mux.HandleFunc("/api/charitable/probe/status", h.handleStatus)
-	mux.HandleFunc("/api/charitable/probe/summary", h.handleSummary)
-	mux.HandleFunc("/api/charitable/probe/results", h.handleResults)
-	mux.HandleFunc("/api/charitable/probe/stats", h.handleStats)
-	mux.HandleFunc("/api/charitable/probe/actions", h.handleActions)
+	base := charitable.CharitableRoutesBase + "/probe"
+	mux.HandleFunc(base+"/config", h.handleConfig)
+	mux.HandleFunc(base+"/status", h.handleStatus)
+	mux.HandleFunc(base+"/summary", h.handleSummary)
+	mux.HandleFunc(base+"/results", h.handleResults)
+	mux.HandleFunc(base+"/stats", h.handleStats)
+	mux.HandleFunc(base+"/actions", h.handleActions)
 }
 
 func (h *Handler) handleConfig(w http.ResponseWriter, r *http.Request) {

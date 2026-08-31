@@ -9,15 +9,16 @@ import { ModelInputList } from '@/external/components/ui/ModelInputList';
 import { modelsToEntries } from '@/external/components/ui/modelInputListUtils';
 import { useEdgeSwipeBack } from '@/hooks/useEdgeSwipeBack';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
-import { SecondaryScreenShell } from '@/components/common/SecondaryScreenShell';
-import { providersApi } from '@/services/api';
+import { SecondaryScreenShell } from '@/external/components/common/SecondaryScreenShell';
+import { providersApi } from '@/external/services/api/providersExt';
 import { useAuthStore, useConfigStore, useNotificationStore } from '@/stores';
 import type { ProviderKeyConfig } from '@/types';
 import { excludedModelsToText, parseExcludedModels } from '@/external/components/providers/utils';
-import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/utils/headers';
-import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/utils/compare';
+import { buildHeaderObject, headersToEntries, normalizeHeaderEntries } from '@/external/utils/headers';
+import { areKeyValueEntriesEqual, areModelEntriesEqual, areStringArraysEqual } from '@/external/utils/compare';
 import type { VertexFormState } from '@/external/components/providers';
 import layoutStyles from './AiProvidersEditLayout.module.scss';
+import { fetchConfigSection } from '@/external/utils/configSection';
 
 type LocationState = { fromAiProviders?: boolean } | null;
 
@@ -112,7 +113,7 @@ export function AiProvidersVertexEditPage() {
       navigate(-1);
       return;
     }
-    navigate('/ai-providers', { replace: true });
+    navigate('/auth/providers', { replace: true });
   }, [location.state, navigate]);
 
   const swipeRef = useEdgeSwipeBack({ onBack: handleBack });
@@ -132,7 +133,7 @@ export function AiProvidersVertexEditPage() {
     setLoading(true);
     setError('');
 
-    Promise.all([fetchConfig('vertex-api-key'), providersApi.getVertexConfigs()])
+    Promise.all([fetchConfigSection('vertex-api-key'), providersApi.getVertexConfigs()])
       .then(([configResult, vertexResult]) => {
         if (cancelled) return;
 

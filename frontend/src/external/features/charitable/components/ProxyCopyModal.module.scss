@@ -1,4 +1,4 @@
-@use '@/styles/variables.scss' as *;
+@use '@/styles/variables' as *;
 
 :global(.modal-overlay):has(.proxyCopyModal) {
   background: color-mix(in srgb, #07101f 42%, transparent);
