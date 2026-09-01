@@ -245,7 +245,13 @@ synced_at=<YYYY-MM-DD>                                # 可选
 bin/check-upstream-drift.sh --verbose   # 镜像 == 上游@pin + upstream-allowlist.conf，零容忍
 bin/check-import-boundary.sh            # 二开手写代码对上游 internal 的依赖只能减少
 bin/gen-cli-mirror.sh --check           # run.gen.go 与上游 cmd/server/main.go 一致
+
+cd backend && go test ./internal/core/upstreamcontract/   # 上游路由表与配置键契约
 ```
+
+契约测试覆盖编译器抓不到的部分：core 发往 CPA 的 12 条管理端点（含 method）和
+`localengine` 改写的 5 个 config.yaml 键路径。上游改名或移除端点时，这里失败并直接
+点出调用方文件与同前缀的可用路由。
 
 两类脚本与 `compare-cliproxyapi.sh` 的分工：后者面向人、预期有差异、用于阅读；门禁面向 CI、预期零意外、用于卡门。已批准差异分别声明在 `bin/upstream-allowlist.conf` 与 `bin/import-boundary-allowlist.conf`。
 

@@ -91,7 +91,7 @@ cd backend && for p in cmd internal sdk test examples assets; do diff -rq /tmp/u
 
 | 契约 | 数量 / 内容 | 现状 |
 |---|---|---|
-| 硬编码上游管理 API 路径 | 23 条（`/v0/management/auth-files/status`、`/config`、`/usage/summary`、`/model-prices/sync`、`/proxy-url` …） | 无测试；上游改名后运行期 404 |
+| 硬编码上游管理 API 路径 | 23 条出现，其中 **12 条是真正的出站契约**（`/config`、`/config.yaml`、`/auth-files`、`/auth-files/status`、`/proxy-url`、`/usage-queue`、`/usage-statistics-enabled` + 5 个 provider section）；其余 11 条是 core 自己服务的路径 | 无测试；上游改名后运行期 404 |
 | 上游 YAML 字段名 | `plugins.dir`、`plugins.configs`、`proxy-url`、`remote-management.secret-key` / `allow-remote` | 无测试；`localengine` 直接按字符串路径改写 YAML |
 | cgo / 插件能力探测 | `X-CPA-SUPPORT-PLUGIN` 依赖 `CGO_ENABLED=1`（见 `build.sh:51`） | 靠注释约定 |
 | 前端产物内嵌 | `build.sh` 把 `frontend/dist/index.html` 拷进 `backend/internal/core/httpapi/web/management.html` 并入库 | 4.6MB 构建产物进源码树，每次都是脏 diff；且 `server.go:35` 是硬 `//go:embed`，无法简单移出跟踪 |
@@ -324,40 +324,54 @@ done
 
 ### 6.5 上游契约测试
 
-针对 §2.3 的隐性契约，新增 `cpamc/test/upstreamcontract/`，成本低、收益直接：
+已实施：`internal/core/upstreamcontract/`（双 module 拆分后移到 `cpamc/test/upstreamcontract/`）。
+两个测试都不开监听、不联网，毫秒级：
 
-```go
-// 路由表契约：不需要真实网络，用 WithEngineConfigurator 抓 gin 引擎枚举路由
-func TestUpstreamManagementRoutesExist(t *testing.T) {
-    var engine *gin.Engine
-    // 通过 sdk/api.WithEngineConfigurator 捕获引擎；或 sdk/cliproxy Builder 构建后取路由
-    required := []string{
-        "/v0/management/config",
-        "/v0/management/auth-files",
-        "/v0/management/auth-files/status",
-        "/v0/cpamc/usage",
-        "/v0/cpamc/usage/summary",
-        "/v0/cpamc/model-prices",
-        "/v0/management/proxy-url",
-        // …§2.3 的 23 条
-    }
-    got := routeSet(engine.Routes())
-    for _, path := range required {
-        if !got.has(path) {
-            t.Errorf("上游已移除二开依赖的管理路径 %s", path)
-        }
-    }
-}
+- **路由表契约**：按 `sdk/cliproxy` 的方式构造上游 HTTP server，枚举 gin 路由表，
+  断言 core 发往 CPA 的每个 `METHOD + path` 仍然存在。失败信息带调用方文件名和
+  同前缀的可用路由，直接指出上游把端点改成了什么。
+- **配置字段契约**：对 `sdk/config.Config` 做 `yaml.Marshal` 后按键路径断言，
+  确保 `localengine` 按字符串路径改写的 YAML 键仍在 schema 内。失败时打印上游全部顶层键。
 
-// 配置字段契约：断言 localengine 改写的 YAML 键仍存在于 sdk/config.Config
-func TestUpstreamConfigKeysExist(t *testing.T) {
-    // 对 sdk/config.Config 做 yaml.Marshal，断言键路径存在：
-    //   plugins.dir / plugins.configs / proxy-url
-    //   remote-management.secret-key / remote-management.allow-remote
-}
+实施中修正了本节原先两处错误的设计假设：
+
+| 原假设 | 实测 |
+|---|---|
+| 用 `WithRouterConfigurator` 能读到完整路由表 | 错。它在**基础路由之后、management 路由之前**触发；`WithEngineConfigurator` 更早。两者都读不到最终表——只能在回调里**捕获 engine 指针**，等 `NewServer` 返回后再枚举 |
+| 直接构造 server 就有 `/v0/management/*` | 错。management 路由**条件注册**：需要 config `secret-key`、环境变量或 local password 之一。测试必须显式设 `RemoteManagement.SecretKey`，否则路由表里一条都没有 |
+
+为此加了三层哨兵，避免「测试骨架坏了」被误读成「上游删了所有端点」：
+
+```text
+路由数为 0              → engine 捕获机制失效
+有路由但无 /healthz      → 枚举时机不对
+有基础路由但无 management → 上游改了 management 路由的注册门槛
 ```
 
-这两个测试把「同步后要注意 23 个地方」变成「同步后跑一条命令」。它们是本方案里**唯一能覆盖 P5 的手段**——目录拆分和门禁脚本都覆盖不到语义漂移。
+第三层已实测：去掉 `SecretKey` 后测试给出准确诊断，而不是 12 条误导性的「上游已不再提供」。
+
+覆盖的 12 条出站端点：
+
+| 端点 | 调用方 |
+|---|---|
+| `GET /v0/management/config` | `httpapi/server.go`、`probe/cpa_sync.go` |
+| `PUT /v0/management/config.yaml` | `cluster/pusher.go` |
+| `GET /v0/management/auth-files` | `collector/auth_snapshot.go` |
+| `PATCH /v0/management/auth-files/status` | `probe/manager.go` |
+| `GET /v0/management/proxy-url` | `httpapi/server.go` |
+| `GET /v0/management/usage-queue` | `httpqueue/client.go` |
+| `PUT /v0/management/usage-statistics-enabled` | `httpapi/server.go` |
+| `PUT /v0/management/{openai-compatibility,gemini-api-key,claude-api-key,codex-api-key,vertex-api-key}` | `probe/cpa_sync.go`，每个 `supportedCPAConfigTypes` 一条 |
+
+§2.3 计的 23 条里，其余 11 条是 core **自己**服务的路径（`/v0/management/cpamc/*`、
+`model-prices`、`model-price-proxy`、`api-key-aliases`、本地 usage 查询），不构成上游契约；
+通用 `/v0/management/*` 透传代理也不需要逐路径保证。
+
+写这批测试时抓到一个**我自己的笔误**：初版把 `auth-files/status` 记成 `GET`，而
+`probe/manager.go:587` 用的是 `PATCH`（与上游一致）。之前只 grep 了 URL 那一行、没看下一行的
+method。这类错误正是契约测试的价值——它对着真实路由表核对，而不是对着我的记忆。
+
+这两个测试是本方案里**唯一能覆盖 P5 的手段**——目录拆分和门禁脚本都覆盖不到语义漂移。
 
 ### 6.6 go.work、构建与发布
 
@@ -467,10 +481,19 @@ cd backend/cpamc && go build ./cmd/cpamc github.com/router-for-me/CLIProxyAPI/v7
 写回归测试时若按「registry 直接声明带 token 的 URL」建模，会被第二处校验拦下，
 从而对补丁得出错误结论——测试因此改用重定向场景。
 
-### Phase 2：契约测试（1~2 天）
+### Phase 2：契约测试 —— 已实施
 
-- [ ] `internal/core/../test/upstreamcontract/`：路由表 + 配置字段契约
-- [ ] 把 §2.3 的 23 条路径集中成一份常量表，供实现与测试共用（当前散落在多个文件里硬编码）
+- [x] `internal/core/upstreamcontract/`：路由表契约（12 条出站端点）+ 配置字段契约（5 个键路径）。
+      两个测试都验证过会失败：注入不存在的键 / 去掉 management secret，均给出准确诊断。
+- [x] 三层哨兵区分「骨架坏了」与「上游删了端点」。
+- [ ] 把出站路径集中成一份常量表，供实现与测试共用。当前测试里的路径是**独立抄写**的，
+      与实现各自硬编码——好处是能抓出实现侧的笔误（已抓到一次），坏处是新增出站调用时
+      要记得同步。等 Phase 3 拆分后再统一收口，避免现在为它改动大量文件。
+
+顺带修掉一个会阻塞 CI 的既存问题：`internal/core/proxy/service/service_test.go:259`
+用 `fmt.Sprintf("%s:%d", host, port)` 拼地址，`go vet` 的 IPv6 检查拒绝该写法。
+改为 `net.JoinHostPort`，语义等价（该 helper 只用 `127.0.0.1` 调用）。
+该目录是尚未提交的 WIP，且 `httpapi/server.go` 里对它的 import 也未提交。
 
 ### Phase 3：双 module 拆分（3~5 天，一次性结构变更）
 
@@ -529,7 +552,8 @@ B 相对 A 的增量价值，本质是把三件事从「约定」变成「不可
 | 上游镜像的允许差异 | 未定义（脚本永远报差异） | 声明式：3 项 + 2 个 local-only 目录 | 0（patches 外） |
 | 后端 CI 门禁数 | 0 | 6 步（编译 / 入口构建 / vet / 测试 / 漂移 / 边界 / 生成一致） | 同 |
 | 「本地补丁静默丢失」可检测 | 否 | 是（漂移门禁 + 行为回归测试双保险） | 是 |
-| 隐性契约被测试覆盖 | 0 / 23 | 0 / 23（Phase 2） | 23 / 23 |
+| 上游出站端点被契约测试覆盖 | 0 / 12 | **12 / 12** | 12 / 12 |
+| 上游配置键被契约测试覆盖 | 0 / 5 | **5 / 5** | 5 / 5 |
 | 同步验证需跑的上游测试 | 全量 | 全量 | 仅 `go build` |
 
 ## 11. 待决策项

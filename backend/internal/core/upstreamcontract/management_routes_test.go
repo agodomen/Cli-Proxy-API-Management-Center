@@ -25,7 +25,6 @@ import (
 	internalapi "github.com/router-for-me/CLIProxyAPI/v7/internal/api"
 	sdkaccess "github.com/router-for-me/CLIProxyAPI/v7/sdk/access"
 	sdkapi "github.com/router-for-me/CLIProxyAPI/v7/sdk/api"
-	"github.com/router-for-me/CLIProxyAPI/v7/sdk/api/handlers"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	sdkconfig "github.com/router-for-me/CLIProxyAPI/v7/sdk/config"
 )
@@ -48,7 +47,7 @@ var requiredManagementRoutes = []managementRoute{
 	{http.MethodGet, "/v0/management/config", "internal/core/httpapi/server.go, internal/core/probe/cpa_sync.go"},
 	{http.MethodPut, "/v0/management/config.yaml", "internal/core/cluster/pusher.go"},
 	{http.MethodGet, "/v0/management/auth-files", "internal/core/collector/auth_snapshot.go"},
-	{http.MethodGet, "/v0/management/auth-files/status", "internal/core/probe/manager.go"},
+	{http.MethodPatch, "/v0/management/auth-files/status", "internal/core/probe/manager.go setAuthFileDisabled"},
 	{http.MethodGet, "/v0/management/proxy-url", "internal/core/httpapi/server.go"},
 	{http.MethodGet, "/v0/management/usage-queue", "internal/core/httpqueue/client.go"},
 	{http.MethodPut, "/v0/management/usage-statistics-enabled", "internal/core/httpapi/server.go"},
@@ -64,10 +63,20 @@ var requiredManagementRoutes = []managementRoute{
 func TestUpstreamManagementRoutesExist(t *testing.T) {
 	routes := upstreamRouteSet(t)
 
-	// A collapsed route table means the capture mechanism broke, not that
-	// upstream removed everything. Fail with that distinction stated.
+	// Two sentinels, so a broken harness cannot be mistaken for upstream having
+	// deleted every endpoint the management center calls.
+	//
+	// No routes at all: the engine capture broke.
 	if len(routes) == 0 {
-		t.Fatal("未捕获到任何上游路由：WithRouterConfigurator 的时机或 internal/api.NewServer 的构造方式已变化，需人工复核本测试")
+		t.Fatal("未捕获到任何上游路由：WithEngineConfigurator 的时机或 internal/api.NewServer 的构造方式已变化，需人工复核本测试")
+	}
+	if _, ok := routes["GET /healthz"]; !ok {
+		t.Fatal("未捕获到基础路由 GET /healthz：路由表捕获时机不对，需人工复核本测试")
+	}
+	// Base routes present but the management group missing: the registration gate
+	// changed (upstream requires a management secret; the test config sets one).
+	if !hasPrefix(routes, "/v0/management/") {
+		t.Fatal("捕获到基础路由但没有任何 /v0/management/* ：上游 management 路由的注册条件已变化（当前条件是存在 management secret），需人工复核本测试")
 	}
 
 	for _, want := range requiredManagementRoutes {
@@ -80,11 +89,18 @@ func TestUpstreamManagementRoutesExist(t *testing.T) {
 }
 
 // upstreamRouteSet builds a community server the same way sdk/cliproxy does and
-// returns its gin route table as "METHOD /path" keys.
+// returns its gin route table as "METHOD /path" keys. No listener is opened.
 //
-// WithRouterConfigurator is documented as running after the default routes are
-// registered, and internal/api.NewServer invokes it before returning, so the
-// captured engine already has the full table. No listener is opened.
+// Two upstream behaviours this depends on:
+//
+//  1. Management routes are registered only when a management secret exists
+//     (config secret-key, env, or a local password), so the config below sets
+//     RemoteManagement.SecretKey. Without it the table has no /v0/management/*
+//     entries at all.
+//  2. WithEngineConfigurator runs BEFORE routes are registered, and
+//     WithRouterConfigurator runs after the base routes but still BEFORE the
+//     management group. Neither can read the final table, so we only capture the
+//     engine pointer and enumerate after NewServer returns.
 func upstreamRouteSet(t *testing.T) map[string]struct{} {
 	t.Helper()
 
@@ -105,9 +121,11 @@ func upstreamRouteSet(t *testing.T) map[string]struct{} {
 		LoggingToFile:          false,
 		UsageStatisticsEnabled: false,
 	}
+	// Gates management route registration; see (1) above.
+	cfg.RemoteManagement.SecretKey = "contract-test-secret"
 
 	var engine *gin.Engine
-	capture := sdkapi.WithRouterConfigurator(func(e *gin.Engine, _ *handlers.BaseAPIHandler, _ *sdkconfig.Config) {
+	capture := sdkapi.WithEngineConfigurator(func(e *gin.Engine) {
 		engine = e
 	})
 
@@ -120,7 +138,7 @@ func upstreamRouteSet(t *testing.T) map[string]struct{} {
 	)
 
 	if engine == nil {
-		t.Fatal("WithRouterConfigurator 未被调用：上游 internal/api.NewServer 的 option 处理已变化")
+		t.Fatal("WithEngineConfigurator 未被调用：上游 internal/api.NewServer 的 option 处理已变化")
 	}
 
 	out := make(map[string]struct{})
@@ -128,6 +146,15 @@ func upstreamRouteSet(t *testing.T) map[string]struct{} {
 		out[strings.ToUpper(strings.TrimSpace(route.Method))+" "+route.Path] = struct{}{}
 	}
 	return out
+}
+
+func hasPrefix(routes map[string]struct{}, pathPrefix string) bool {
+	for key := range routes {
+		if idx := strings.IndexByte(key, ' '); idx >= 0 && strings.HasPrefix(key[idx+1:], pathPrefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // matchingPrefix lists routes sharing the failing path's parent, which is what
