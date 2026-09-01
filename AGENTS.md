@@ -215,8 +215,17 @@ Plugin-store list/install uses a dedicated outbound proxy/accelerator independen
 - **版本选择**：优先 tag；记录 tag + commit；默认跟踪 `main` 发布线。
 - **上游代码来源**：优先上下文/环境中的现成 CLIProxyAPI clone（如 `CLIPROXYAPI_SOURCE`），否则 `/tmp` 只读准备；用 `bin/compare-cliproxyapi.sh` 对比后人工移植。
 - Never overwrite `backend/internal/core/` or `backend/cmd/cpamc/`（以及 pin 本身）。
-- Keep intentional local compatibility patches inventory-driven. The current backend manifest contains only `internal/pluginstore/auth.go`, which permits ephemeral signed redirect query parameters during artifact downloads while declared registry/manifest URLs remain strictly validated.
-- Full procedure: [`docs/architecture/community-sync.md`](docs/architecture/community-sync.md).
+- **后端 manifest 已为空**：不再用「跳过覆盖」保留本地改动。`bin/sync-manifest.conf` 的 `[backend]` 段为空，后端同步无需 `--confirm-manifest`。
+  - 必须落在上游文件里的改动放在 `backend/patches/*.patch`，同步时 `git apply --check` 先验后应用，**冲突即整体失败**。当前只有一个：`0001-pluginstore-allow-github-signed-artifact-url.patch`，放宽跟随重定向后的 artifact URL 校验，registry / manifest 声明的 URL 仍严格校验。
+  - 上游入口 `cmd/server/main.go` 的镜像由 `bin/gen-cli-mirror.sh` 生成为 `internal/core/cli/run.gen.go`，**禁止手改**。
+- **同步后必须全绿的门禁**（CI 亦执行）：
+  ```bash
+  bin/check-upstream-drift.sh        # 镜像 == 上游@pin + upstream-allowlist.conf，零容忍
+  bin/check-import-boundary.sh       # 二开手写代码对上游 internal 的依赖只能减少
+  bin/gen-cli-mirror.sh --check      # run.gen.go 与上游入口一致
+  cd backend && go test ./internal/core/upstreamcontract/   # 上游路由表与配置键契约
+  ```
+- Full procedure: [`docs/architecture/community-sync.md`](docs/architecture/community-sync.md)；后端架构演进路线：[`docs/architecture/backend-extension-architecture.md`](docs/architecture/backend-extension-architecture.md)。
 
 ## 4. Agent Execution Directives
 
@@ -235,7 +244,53 @@ Plugin-store list/install uses a dedicated outbound proxy/accelerator independen
 
 ---
 
-## 5. Target File Structure
+## 5. Concurrent Agent Discipline（并发纪律）
+
+**多个 agent 可能同时在这个工作区里写入。** 以下三条是硬约束，不是建议 —— 每一条都对应一次真实发生过的事故。
+
+### 5.1 禁止 `git commit -a` 和 `git add .`
+
+工作区里可能有别人改到一半的文件。只 `git add` 自己明确改过的路径，逐个列出。
+
+> 事故：`dd62713` 用了 `commit -a`，把另一个 agent 正在改的契约测试半成品一起提交，419 文件 / +42050 行混在一个 commit 里，HEAD 上 CI 变红。
+
+### 5.2 提交前必须跑门禁，并验证暂存版本能自立
+
+```bash
+bin/check-upstream-drift.sh && bin/check-import-boundary.sh && bin/gen-cli-mirror.sh --check
+```
+
+几秒钟，能挡住越界改上游和生成件漂移。
+
+改动涉及测试或编译时，还要确认**暂存的内容单独就能通过** —— 不依赖工作区里别人未提交的东西：
+
+```bash
+WT=$(mktemp -d)/wt && git worktree add --detach --quiet "$WT" HEAD
+git diff --cached > /tmp/staged.patch && git -C "$WT" apply /tmp/staged.patch
+(cd "$WT/backend" && go build ./... && go test ./internal/core/...)
+git worktree remove --force "$WT"
+```
+
+用 `git worktree` 而不是 `git stash`：stash 会动到别人的文件。
+
+> 事故：被提交的测试版本缺少一处必要设置，在完整工作区里能过、单独 checkout 就全挂。
+
+### 5.3 新文件必须显式 `git add`
+
+`git commit -a` 不会带上未跟踪文件。
+
+> 事故：`config_keys_test.go` 是新文件，未被 `add`，于是契约测试只进去一半 —— 文档声称覆盖 5/5，实际 0/5。**比完全没提交更危险**，因为看起来像已经覆盖了。
+
+### 5.4 交接前的检查
+
+自己的功能收工时：
+
+- [ ] 只提交自己的文件，`git status` 里剩下的应该都是别人的
+- [ ] 已跟踪文件**不得**引用未跟踪目录（否则别人 checkout 后直接编译失败）
+- [ ] 新增出站调用上游管理端点时，同步更新 `internal/core/upstreamcontract/` 的端点表
+- [ ] 改了 i18n 时，`en / ru / zh-CN / zh-TW` 四个 locale 的 key 集合保持一致（缺 key 不报错，只在界面显示成原始 key 名）
+
+## 6. Target File Structure
 
 ```text
 Cli-Proxy-API-Management-Center/
@@ -298,19 +353,26 @@ Cli-Proxy-API-Management-Center/
 │   │       ├── usage/             #   Usage 事件模型
 │   │       ├── localengine/       #   统一运行时桥接
 │   │       ├── proxy/            #   代理/加速器类型与逻辑规范定义
-│   │       └── cli/              #   cmd/server/main.go 镜像提取（CLI 模式委托）
+│   │       ├── cli/              #   run.gen.go：由 cmd/server/main.go 生成，禁止手改
+│   │       └── upstreamcontract/  #   上游契约测试（路由表 + config.yaml 键）
+│   ├── patches/                   # Level 1 — 必须落在上游文件里的改动（.patch，同步时 git apply）
 │   ├── examples/                  #   SDK 与插件示例
 │   ├── test/                      #   CLIProxyAPI 集成测试
 │   ├── .cliproxyapi-upstream-ref
 │   └── CLIPROXYAPI_UPSTREAM_CN.md
 │
-├── bin/                           # Level 1 — 发布/打包脚本 + 同步工具
-│   ├── sync-community.sh           #   社区代码自动覆盖（跳过手动合并清单）
-│   ├── sync-manifest.conf           #   手动清单（后端 1 个兼容补丁 + 前端保护项）
-│   ├── compare-cliproxyapi.sh      #   后端只读对比
+├── bin/                           # Level 1 — 发布/打包脚本 + 同步工具 + 门禁
+│   ├── sync-community.sh           #   社区代码覆盖 + 应用 patches + 重新生成 run.gen.go
+│   ├── sync-manifest.conf           #   手动清单（[backend] 已空；仅前端保护项）
+│   ├── compare-cliproxyapi.sh      #   后端只读对比（面向人，预期有差异）
+│   ├── check-upstream-drift.sh     #   门禁：镜像零容忍漂移
+│   ├── upstream-allowlist.conf     #     已批准的镜像差异声明
+│   ├── check-import-boundary.sh    #   门禁：上游 internal 依赖棘轮
+│   ├── import-boundary-allowlist.conf #  已声明的 internal 依赖
+│   ├── gen-cli-mirror.sh           #   生成 run.gen.go（--check 用于 CI）
 │   └── verify-monorepo.sh           #   结构验证
 ├── .devcontainer/                 # Level 1 — Docker 开发环境
-├── doc/                           # Level 1 — 全部正式文档 + VitePress 站点
+├── docs/                          # Level 1 — 全部正式文档 + VitePress 站点
 │   ├── .vitepress/                #   VitePress 配置与构建输出（输出不提交）
 │   ├── architecture/              #   系统架构与集成设计
 │   ├── charitable/                #   公益管理、凭证与探测运营
