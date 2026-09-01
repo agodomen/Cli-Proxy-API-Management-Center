@@ -26,6 +26,28 @@ type Handler struct {
 	store              *CharitableStore
 	console            *SQLConsole
 	subscriptionClient *http.Client
+	// proxyServiceStatus returns the current local proxy service status.
+	// When non-nil and the service is running with auto_register, a virtual
+	// system node is appended to the proxy list response.
+	proxyServiceStatus func() ProxyServiceSnapshot
+}
+
+// ProxyServiceSnapshot is a lightweight view of the proxy service for virtual
+// node injection. It mirrors the fields needed to build a ProxyDetail.
+type ProxyServiceSnapshot struct {
+	Running    bool   `json:"running"`
+	ListenAddr string `json:"listen_addr"`
+	TCPPort    int    `json:"tcp_port"`
+	UDPPort    int    `json:"udp_port"`
+	Encryption string `json:"encryption_method"`
+	Password   string `json:"password"`
+	AutoRegister bool  `json:"auto_register"`
+}
+
+// SetProxyServiceStatus sets the callback used to inject a virtual system
+// node into the proxy list when the service is running.
+func (h *Handler) SetProxyServiceStatus(fn func() ProxyServiceSnapshot) {
+	h.proxyServiceStatus = fn
 }
 
 func NewHandler(store *CharitableStore) *Handler {
@@ -676,6 +698,38 @@ func validateProxyInput(p *ProxyDetail) error {
 	return validateJSON(p.Param)
 }
 
+// buildSystemProxyNode creates a virtual ProxyDetail representing the running
+// local proxy service. It is not persisted to cpa_proxy_detail — it exists
+// only in list responses while the service is running.
+//
+// The node uses a negative synthetic ID (0) so it never collides with real
+// rows. proxy_info is tagged with privacy=local so Clash export skips it.
+func buildSystemProxyNode(snap ProxyServiceSnapshot) ProxyDetail {
+	proxyType := ProxyTypeSOCKS
+	proxyValue := "socks5://" + snap.ListenAddr + ":" + strconv.Itoa(snap.TCPPort)
+	if snap.Encryption != "" && snap.Encryption != "none" {
+		proxyType = ProxyTypeShadowsocks
+		// SS URI format: ss://base64(method:password)@host:port#name
+		creds := snap.Encryption + ":" + snap.Password
+		encoded := base64.StdEncoding.EncodeToString([]byte(creds))
+		proxyValue = "ss://" + encoded + "@" + snap.ListenAddr + ":" + strconv.Itoa(snap.TCPPort) + "#local-service"
+	}
+	info := `{"privacy":"local","source":"system","service":"local-proxy"}`
+	return ProxyDetail{
+		ID:         0,
+		ProxyIndex: "system:local-proxy-service",
+		ProxyType:  proxyType,
+		ProxyValue: proxyValue,
+		ProxyInfo:  info,
+		Status:     1,
+		Priority:   999,
+		Param:      "{}",
+		Remark:     "Auto-generated local proxy service node",
+		CreateAt:   "",
+		UpdateAt:   "",
+	}
+}
+
 func (h *Handler) handleProxies(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
@@ -687,6 +741,16 @@ func (h *Handler) handleProxies(w http.ResponseWriter, r *http.Request) {
 		}
 		if result.Items == nil {
 			result.Items = []ProxyDetail{}
+		}
+		// Inject virtual system node when the local proxy service is running
+		// and auto_register is enabled.
+		if h.proxyServiceStatus != nil {
+			if snap := h.proxyServiceStatus(); snap.Running && snap.AutoRegister {
+				node := buildSystemProxyNode(snap)
+				// Prepend the system node so it appears at the top of the list.
+				result.Items = append([]ProxyDetail{node}, result.Items...)
+				result.TotalItems++
+			}
 		}
 		httputil.WriteJSON(w, http.StatusOK, result)
 	case http.MethodPost:
@@ -981,6 +1045,14 @@ func (h *Handler) handleProxyProbe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeCharitableError(w, http.StatusInternalServerError, "request_failed")
 		return
+	}
+
+	// Inject the virtual system node (ID=0) if the proxy service is running.
+	if h.proxyServiceStatus != nil {
+		if snap := h.proxyServiceStatus(); snap.Running && snap.AutoRegister {
+			node := buildSystemProxyNode(snap)
+			proxies = append(proxies, node)
+		}
 	}
 
 	byID := make(map[int64]ProxyDetail, len(proxies))

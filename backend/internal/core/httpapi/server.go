@@ -28,6 +28,7 @@ import (
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/config"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/probe"
 	coreproxy "github.com/router-for-me/CLIProxyAPI/v7/internal/core/proxy"
+	proxyservice "github.com/router-for-me/CLIProxyAPI/v7/internal/core/proxy/service"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/store"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/core/usage"
 )
@@ -46,6 +47,8 @@ type Server struct {
 	pluginRegistered  func(string) bool
 	pluginBusy        func(string) bool
 	clusterHandler    *cluster.Handler
+	proxyService      *proxyservice.Service
+	proxyServiceMu    sync.Mutex
 }
 
 type setupSource string
@@ -199,6 +202,10 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, cpamcBase+"/common-params") {
 		s.withCORS(s.handleCommonParams)(w, r)
+		return
+	}
+	if strings.HasPrefix(r.URL.Path, cpamcBase+"/charitable/proxies/service") {
+		s.withCORS(s.handleProxyService)(w, r)
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, cpamcBase+"/charitable/") {
@@ -1235,6 +1242,22 @@ func (s *Server) initCharitable() {
 	cs := charitable.NewCharitableStore(s.store.DB())
 	console := charitable.NewSQLConsole(s.store.DB(), s.cfg.DBPath, s.cfg.DebugDatabases)
 	h := charitable.NewHandlerWithConsole(cs, console)
+	// Inject proxy service status so the proxy list can include a virtual
+	// system node when the local proxy service is running.
+	h.SetProxyServiceStatus(func() charitable.ProxyServiceSnapshot {
+		svc := s.ensureProxyService()
+		cfg := svc.Config()
+		st := svc.Status()
+		return charitable.ProxyServiceSnapshot{
+			Running:      st.Running,
+			ListenAddr:   cfg.ListenAddr,
+			TCPPort:      cfg.TCPPort,
+			UDPPort:      cfg.UDPPort,
+			Encryption:   cfg.EncryptionMethod,
+			Password:     cfg.Password,
+			AutoRegister: cfg.AutoRegister,
+		}
+	})
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 	if s.probeManager != nil {

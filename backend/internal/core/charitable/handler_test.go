@@ -918,3 +918,163 @@ func TestHandlerProviderMultiProtocolType(t *testing.T) {
 		t.Fatalf("expected invalid protocol rejection, body = %s", rr.Body.String())
 	}
 }
+
+func TestVirtualSystemNodeInjection(t *testing.T) {
+	s, err := store.Open(t.TempDir() + "/virtual_node.sqlite")
+	if err != nil {
+		t.Fatalf("open store: %v", err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	cs := NewCharitableStore(s.DB())
+	h := NewHandler(cs)
+
+	// Without service status callback — no virtual node.
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	// Create a real proxy so the list isn't empty.
+	createBody, _ := json.Marshal(map[string]any{
+		"proxy_index": "real-proxy-1",
+		"proxy_type":  ProxyTypeSOCKS,
+		"proxy_value": "socks5://example.com:1080",
+		"status":      1,
+		"param":       "{}",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/v0/cpamc/charitable/proxies", strings.NewReader(string(createBody)))
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("create proxy: %d %s", rr.Code, rr.Body.String())
+	}
+
+	// List without service — should have 1 real proxy.
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/proxies?page=1&page_size=50", nil)
+	rr = httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	var result PageResult[ProxyDetail]
+	json.Unmarshal(rr.Body.Bytes(), &result)
+	if len(result.Items) != 1 || result.Items[0].ProxyIndex == "system:local-proxy-service" {
+		t.Fatalf("expected 1 real proxy, got %d items", len(result.Items))
+	}
+
+	// Set service status callback — running with auto_register.
+	h.SetProxyServiceStatus(func() ProxyServiceSnapshot {
+		return ProxyServiceSnapshot{
+			Running:      true,
+			ListenAddr:   "127.0.0.1",
+			TCPPort:      1080,
+			Encryption:   "none",
+			AutoRegister: true,
+		}
+	})
+
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/proxies?page=1&page_size=50", nil)
+	rr = httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	json.Unmarshal(rr.Body.Bytes(), &result)
+	if len(result.Items) != 2 {
+		t.Fatalf("expected 2 items (virtual + real), got %d", len(result.Items))
+	}
+	if result.Items[0].ProxyIndex != "system:local-proxy-service" {
+		t.Fatalf("expected virtual node first, got index=%s", result.Items[0].ProxyIndex)
+	}
+	if result.Items[0].ProxyType != ProxyTypeSOCKS {
+		t.Fatalf("expected SOCKS5 type for unencrypted, got %d", result.Items[0].ProxyType)
+	}
+	if result.Items[0].ProxyValue != "socks5://127.0.0.1:1080" {
+		t.Fatalf("unexpected proxy_value: %s", result.Items[0].ProxyValue)
+	}
+	if !strings.Contains(result.Items[0].ProxyInfo, "local") {
+		t.Fatalf("expected privacy=local in proxy_info: %s", result.Items[0].ProxyInfo)
+	}
+	if result.TotalItems != 2 {
+		t.Fatalf("expected total_items=2, got %d", result.TotalItems)
+	}
+
+	// Test with encryption enabled.
+	h.SetProxyServiceStatus(func() ProxyServiceSnapshot {
+		return ProxyServiceSnapshot{
+			Running:      true,
+			ListenAddr:   "0.0.0.0",
+			TCPPort:      8388,
+			Encryption:   "aes-256-gcm",
+			Password:     "testpw",
+			AutoRegister: true,
+		}
+	})
+
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/proxies?page=1&page_size=50", nil)
+	rr = httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	json.Unmarshal(rr.Body.Bytes(), &result)
+	if len(result.Items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(result.Items))
+	}
+	if result.Items[0].ProxyType != ProxyTypeShadowsocks {
+		t.Fatalf("expected Shadowsocks type, got %d", result.Items[0].ProxyType)
+	}
+	if !strings.HasPrefix(result.Items[0].ProxyValue, "ss://") {
+		t.Fatalf("expected ss:// URI, got %s", result.Items[0].ProxyValue)
+	}
+
+	// Service stopped — no virtual node.
+	h.SetProxyServiceStatus(func() ProxyServiceSnapshot {
+		return ProxyServiceSnapshot{Running: false, AutoRegister: true}
+	})
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/proxies?page=1&page_size=50", nil)
+	rr = httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	json.Unmarshal(rr.Body.Bytes(), &result)
+	if len(result.Items) != 1 {
+		t.Fatalf("expected 1 item when service stopped, got %d", len(result.Items))
+	}
+
+	// Auto-register disabled — no virtual node even if running.
+	h.SetProxyServiceStatus(func() ProxyServiceSnapshot {
+		return ProxyServiceSnapshot{Running: true, AutoRegister: false}
+	})
+	req = httptest.NewRequest(http.MethodGet, "/v0/cpamc/charitable/proxies?page=1&page_size=50", nil)
+	rr = httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	json.Unmarshal(rr.Body.Bytes(), &result)
+	if len(result.Items) != 1 {
+		t.Fatalf("expected 1 item when auto_register disabled, got %d", len(result.Items))
+	}
+}
+
+func TestBuildSystemProxyNode(t *testing.T) {
+	t.Run("unencrypted socks5", func(t *testing.T) {
+		node := buildSystemProxyNode(ProxyServiceSnapshot{
+			Running:    true,
+			ListenAddr: "127.0.0.1",
+			TCPPort:    1080,
+			Encryption: "none",
+		})
+		if node.ProxyType != ProxyTypeSOCKS {
+			t.Fatalf("expected SOCKS, got %d", node.ProxyType)
+		}
+		if node.ProxyValue != "socks5://127.0.0.1:1080" {
+			t.Fatalf("unexpected value: %s", node.ProxyValue)
+		}
+	})
+
+	t.Run("encrypted ss", func(t *testing.T) {
+		node := buildSystemProxyNode(ProxyServiceSnapshot{
+			Running:    true,
+			ListenAddr: "0.0.0.0",
+			TCPPort:    8388,
+			Encryption: "aes-256-gcm",
+			Password:   "secret",
+		})
+		if node.ProxyType != ProxyTypeShadowsocks {
+			t.Fatalf("expected Shadowsocks, got %d", node.ProxyType)
+		}
+		if !strings.HasPrefix(node.ProxyValue, "ss://") {
+			t.Fatalf("expected ss:// prefix: %s", node.ProxyValue)
+		}
+		if !strings.Contains(node.ProxyValue, "0.0.0.0:8388") {
+			t.Fatalf("expected host:port in URI: %s", node.ProxyValue)
+		}
+	})
+}

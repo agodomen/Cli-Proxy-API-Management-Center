@@ -1642,7 +1642,7 @@
       "entryToolbar": "Рабочая область отладки",
       "sqlTools": "SQL инструменты",
       "workspaceSqlDesc": "Запросы к бизнес SQLite.",
-      "workspaceApiDesc": "Проверка charitable REST API.",
+      "workspaceApiDesc": "Просмотр всех путей API. Нажмите на строку, чтобы открыть панель отладки.",
       "keyEntry": "Ключи",
       "workspaceKeyDesc": "Извлечение, probe и импорт API-ключей.",
       "metaEntry": "Каталог API",
@@ -1653,6 +1653,7 @@
       "metaFilterSide": "Сторона",
       "metaFilterSource": "Источник",
       "metaFilterGroup": "Группа",
+      "metaFilterMenu": "Меню",
       "metaFilterAll": "Все",
       "metaFilterBackend": "Бэкенд",
       "metaFilterFrontend": "Фронтенд",
@@ -1725,7 +1726,15 @@
         "cpaUpstreamHint": "CPA Upstream: {{url}}",
         "cpaUpstreamMissing": "CPA Upstream отсутствует. Настройте в system/usage service.",
         "systemPromptRequired": "System prompt пуст. Сначала сохраните prompt (settings: chariable.debug.api_key)."
-      }
+      },
+      "apiColMethod": "Метод",
+      "apiColPath": "Путь",
+      "apiColGroup": "Группа",
+      "apiColMenu": "Меню",
+      "apiColSide": "Сторона",
+      "apiColSource": "Источник",
+      "apiColDesc": "Описание",
+      "metaLoading": "Загрузка каталога API…"
     },
     "proxies": "Прокси",
     "proxy": {
@@ -1801,7 +1810,58 @@
         "global_ai": "Глобальные AI-сервисы",
         "global_web": "Глобальные сайты",
         "mainland_china": "Сайты материкового Китая"
-      }
+      },
+      "tabs": {
+        "service": "Локальная служба"
+      },
+      "service": {
+        "title": "Локальный прокси-сервис",
+        "configTitle": "Конфигурация службы",
+        "statusRunning": "Работает",
+        "statusStopped": "Остановлена",
+        "startedAt": "Время запуска",
+        "componentRunning": "Работает",
+        "componentStopped": "Не запущен",
+        "start": "Запустить",
+        "stop": "Остановить",
+        "restart": "Перезапустить",
+        "save": "Сохранить",
+        "listenAddr": "Адрес прослушивания",
+        "listenAddrHint": "По умолчанию 127.0.0.1 (только localhost). Используйте 0.0.0.0 для доступа по LAN (требуется пароль).",
+        "tcpPort": "TCP порт",
+        "udpPort": "UDP порт",
+        "udpPortPlaceholder": "Необязательно",
+        "udpPortHint": "UDP порт для Shadowsocks UDP relay. Оставьте пустым для отключения.",
+        "password": "Пароль",
+        "passwordPlaceholder": "Необязательно, требуется для не-localhost",
+        "passwordHint": "Используется для аутентификации SOCKS5/HTTP. Сохраняется между перезапусками.",
+        "encryption": "Шифрование",
+        "encryptionHint": "None — SOCKS5/HTTP прокси. Shadowsocks AEAD — зашифрованный туннель (требуется пароль).",
+        "encryptionOptions": {
+          "none": "Нет (SOCKS5/HTTP)",
+          "aes128gcm": "AES-128-GCM",
+          "aes256gcm": "AES-256-GCM",
+          "chacha20": "ChaCha20-IETF-Poly1305"
+        },
+        "autoRegister": "Авто-регистрация системного узла",
+        "autoRegisterHint": "Показывать виртуальный системный узел во время работы (Фаза 3).",
+        "enabled": "Включить и авто-запуск",
+        "enabledHint": "Автоматически запускает службу при сохранении.",
+        "show": "Показать",
+        "hide": "Скрыть",
+        "loadFailed": "Не удалось загрузить статус прокси-сервиса",
+        "saveSuccess": "Конфигурация прокси-сервиса сохранена",
+        "saveFailed": "Не удалось сохранить конфигурацию",
+        "startSuccess": "Прокси-сервис запущен",
+        "startFailed": "Не удалось запустить прокси-сервис",
+        "stopSuccess": "Прокси-сервис остановлен",
+        "stopFailed": "Не удалось остановить прокси-сервис",
+        "restartSuccess": "Прокси-сервис перезапущен",
+        "restartFailed": "Не удалось перезапустить прокси-сервис",
+        "generatePassword": "Сгенерировать пароль"
+      },
+      "systemNode": "Система",
+      "systemNodeRemark": "Авто-сгенерировано локальным прокси-сервисом"
     },
     "commonParams": {
       "nav": "Общие параметры",

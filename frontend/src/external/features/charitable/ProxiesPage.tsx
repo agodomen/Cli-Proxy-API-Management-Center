@@ -60,10 +60,11 @@ import {
 import { ProxyImportSheet } from './components/ProxyImportSheet';
 import { ProxyURLDeleteSheet } from './components/ProxyURLDeleteSheet';
 import { ClashSubscriptionsPanel } from './components/ClashSubscriptionsPanel';
+import { ProxyServicePanel } from './components/ProxyServicePanel';
 import { GlyphData, GlyphSliders, MicroIcon } from './debug/MicroIcon';
 import debugStyles from './debug/DebugPage.module.scss';
 
-type ProxySection = 'nodes' | 'subscriptions';
+type ProxySection = 'nodes' | 'subscriptions' | 'service';
 
 function ProxyTabs({ active, onChange }: { active: ProxySection; onChange: (value: ProxySection) => void }) {
   const { t } = useTranslation();
@@ -94,6 +95,18 @@ function ProxyTabs({ active, onChange }: { active: ProxySection; onChange: (valu
               <GlyphData />
             </MicroIcon>
             <span className={debugStyles.floatBtnLabel}>{t('charitable.proxy.tabs.subscriptions')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={active === 'service'}
+            className={`${debugStyles.floatBtn} ${active === 'service' ? `${debugStyles.floatBtnActive} ${debugStyles.floatBtnBlue}` : ''}`}
+            onClick={() => onChange('service')}
+          >
+            <MicroIcon tone={active === 'service' ? 'blue' : 'neutral'} active={active === 'service'} size={15}>
+              <GlyphSliders />
+            </MicroIcon>
+            <span className={debugStyles.floatBtnLabel}>{t('charitable.proxy.tabs.service')}</span>
           </button>
         </div>
       </div>
@@ -467,6 +480,17 @@ export function ProxiesPage() {
           <ProxyTabs active={activeSection} onChange={setActiveSection} />
         </header>
         <ClashSubscriptionsPanel baseUrl={baseUrl} managementKey={managementKey} />
+      </div>
+    );
+  }
+  if (activeSection === 'service') {
+    return (
+      <div className={styles.page}>
+        <header className={styles.header}>
+          <h1 className={styles.title}>{t('charitable.proxy.service.title')}</h1>
+          <ProxyTabs active={activeSection} onChange={setActiveSection} />
+        </header>
+        <ProxyServicePanel baseUrl={baseUrl} managementKey={managementKey} />
       </div>
     );
   }

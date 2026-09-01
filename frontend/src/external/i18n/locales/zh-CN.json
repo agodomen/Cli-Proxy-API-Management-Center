@@ -2056,7 +2056,7 @@
       "entryToolbar": "调试工作区",
       "sqlTools": "SQL 工具",
       "workspaceSqlDesc": "连接并查询后台业务 SQLite 数据库。",
-      "workspaceApiDesc": "构造并验证公益管理 REST 接口。",
+      "workspaceApiDesc": "浏览项目全部 API 路径，点击任意行即可在抽屉中发起调试请求。",
       "keyEntry": "密钥调试",
       "workspaceKeyDesc": "从文本提取、探测并导入 API 密钥。",
       "metaEntry": "API 目录",
@@ -2067,6 +2067,7 @@
       "metaFilterSide": "端侧",
       "metaFilterSource": "来源",
       "metaFilterGroup": "分组",
+      "metaFilterMenu": "所属菜单",
       "metaFilterAll": "全部",
       "metaFilterBackend": "后端",
       "metaFilterFrontend": "前端",
@@ -2140,7 +2141,15 @@
         "cpaUpstreamHint": "CPA Upstream：{{url}}",
         "cpaUpstreamMissing": "缺少 CPA Upstream，请先在系统/Usage Service 配置中设置。",
         "systemPromptRequired": "系统提示词为空，请先填写并保存（settings: chariable.debug.api_key）。"
-      }
+      },
+      "apiColMethod": "方法",
+      "apiColPath": "路径",
+      "apiColGroup": "分组",
+      "apiColMenu": "菜单",
+      "apiColSide": "端",
+      "apiColSource": "来源",
+      "apiColDesc": "说明",
+      "metaLoading": "正在加载 API 目录…"
     },
     "proxies": "代理管理",
     "proxy": {
@@ -2258,7 +2267,8 @@
       },
       "tabs": {
         "nodes": "代理节点",
-        "subscriptions": "订阅管理"
+        "subscriptions": "订阅管理",
+        "service": "本机服务"
       },
       "import": {
         "action": "批量导入",
@@ -2347,7 +2357,55 @@
         "dokodemo-door": "Dokodemo-door"
       },
       "proxyTypePlaceholder": "输入名称或编号搜索类型",
-      "proxyTypeAuto": "当前为自动识别模式。"
+      "proxyTypeAuto": "当前为自动识别模式。",
+      "service": {
+        "title": "本机代理服务",
+        "configTitle": "服务配置",
+        "statusRunning": "运行中",
+        "statusStopped": "已停止",
+        "startedAt": "启动时间",
+        "componentRunning": "运行中",
+        "componentStopped": "未启动",
+        "start": "启动",
+        "stop": "停止",
+        "restart": "重启",
+        "save": "保存配置",
+        "listenAddr": "监听地址",
+        "listenAddrHint": "默认 127.0.0.1（仅本机）。如需局域网访问，填写 0.0.0.0 但必须设置密码。",
+        "tcpPort": "TCP 端口",
+        "udpPort": "UDP 端口",
+        "udpPortPlaceholder": "可选",
+        "udpPortHint": "UDP 端口用于 Shadowsocks UDP relay。留空则不启动 UDP 中继。",
+        "password": "密码",
+        "passwordPlaceholder": "可选，非本机监听时必填",
+        "passwordHint": "用于 SOCKS5/HTTP 代理认证。密码持久化保存，不会每次启动变化。",
+        "encryption": "加密方式",
+        "encryptionHint": "无加密模式提供 SOCKS5/HTTP 代理。Shadowsocks AEAD 模式提供加密隧道，需设置密码。",
+        "encryptionOptions": {
+          "none": "无加密 (SOCKS5/HTTP)",
+          "aes128gcm": "AES-128-GCM",
+          "aes256gcm": "AES-256-GCM",
+          "chacha20": "ChaCha20-IETF-Poly1305"
+        },
+        "autoRegister": "自动注册系统节点",
+        "autoRegisterHint": "服务运行时在节点列表中显示虚拟系统节点（第三版支持）。",
+        "enabled": "启用并自动启动",
+        "enabledHint": "保存配置后自动启动服务；关闭则自动停止。",
+        "show": "显示",
+        "hide": "隐藏",
+        "loadFailed": "加载代理服务状态失败",
+        "saveSuccess": "代理服务配置已保存",
+        "saveFailed": "保存代理服务配置失败",
+        "startSuccess": "代理服务已启动",
+        "startFailed": "启动代理服务失败",
+        "stopSuccess": "代理服务已停止",
+        "stopFailed": "停止代理服务失败",
+        "restartSuccess": "代理服务已重启",
+        "restartFailed": "重启代理服务失败",
+        "generatePassword": "随机生成密码"
+      },
+      "systemNode": "系统",
+      "systemNodeRemark": "本机代理服务自动生成"
     },
     "toggleVisibility": "切换可见性",
     "commonParams": {

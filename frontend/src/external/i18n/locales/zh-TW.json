@@ -1877,7 +1877,7 @@
       "entryToolbar": "除錯工作區",
       "sqlTools": "SQL 工具",
       "workspaceSqlDesc": "連接並查詢後台業務 SQLite 資料庫。",
-      "workspaceApiDesc": "構造並驗證公益管理 REST 介面。",
+      "workspaceApiDesc": "瀏覽項目全部 API 路徑，點擊任意行即可在抽屜中發起調試請求。",
       "keyEntry": "金鑰除錯",
       "workspaceKeyDesc": "從文字提取、探測並匯入 API 金鑰。",
       "metaEntry": "API 目錄",
@@ -1888,6 +1888,7 @@
       "metaFilterSide": "端側",
       "metaFilterSource": "來源",
       "metaFilterGroup": "分組",
+      "metaFilterMenu": "所屬選單",
       "metaFilterAll": "全部",
       "metaFilterBackend": "後端",
       "metaFilterFrontend": "前端",
@@ -1961,7 +1962,15 @@
         "cpaUpstreamHint": "CPA Upstream：{{url}}",
         "cpaUpstreamMissing": "缺少 CPA Upstream，請先在系統/Usage Service 設定中配置。",
         "systemPromptRequired": "系統提示詞為空，請先填寫並儲存（settings: chariable.debug.api_key）。"
-      }
+      },
+      "apiColMethod": "方法",
+      "apiColPath": "路徑",
+      "apiColGroup": "分組",
+      "apiColMenu": "選單",
+      "apiColSide": "端",
+      "apiColSource": "來源",
+      "apiColDesc": "說明",
+      "metaLoading": "正在載入 API 目錄…"
     },
     "proxies": "代理管理",
     "proxy": {
@@ -2079,7 +2088,8 @@
       },
       "tabs": {
         "nodes": "代理節點",
-        "subscriptions": "訂閱管理"
+        "subscriptions": "訂閱管理",
+        "service": "本機服務"
       },
       "import": {
         "action": "批次匯入",
@@ -2168,7 +2178,55 @@
         "dokodemo-door": "Dokodemo-door"
       },
       "proxyTypePlaceholder": "輸入名稱或編號搜尋類型",
-      "proxyTypeAuto": "目前為自動識別模式。"
+      "proxyTypeAuto": "目前為自動識別模式。",
+      "service": {
+        "title": "本機代理服務",
+        "configTitle": "服務配置",
+        "statusRunning": "運行中",
+        "statusStopped": "已停止",
+        "startedAt": "啟動時間",
+        "componentRunning": "運行中",
+        "componentStopped": "未啟動",
+        "start": "啟動",
+        "stop": "停止",
+        "restart": "重啟",
+        "save": "保存配置",
+        "listenAddr": "監聽地址",
+        "listenAddrHint": "默認 127.0.0.1（僅本機）。如需區域網訪問，填寫 0.0.0.0 但必須設置密碼。",
+        "tcpPort": "TCP 端口",
+        "udpPort": "UDP 端口",
+        "udpPortPlaceholder": "可選",
+        "udpPortHint": "UDP 端口用於 Shadowsocks UDP relay。留空則不啟動 UDP 中繼。",
+        "password": "密碼",
+        "passwordPlaceholder": "可選，非本機監聽時必填",
+        "passwordHint": "用於 SOCKS5/HTTP 代理認證。密碼持久化保存，不會每次啟動變化。",
+        "encryption": "加密方式",
+        "encryptionHint": "無加密模式提供 SOCKS5/HTTP 代理。Shadowsocks AEAD 模式提供加密隧道，需設置密碼。",
+        "encryptionOptions": {
+          "none": "無加密 (SOCKS5/HTTP)",
+          "aes128gcm": "AES-128-GCM",
+          "aes256gcm": "AES-256-GCM",
+          "chacha20": "ChaCha20-IETF-Poly1305"
+        },
+        "autoRegister": "自動註冊系統節點",
+        "autoRegisterHint": "服務運行時在節點列表中顯示虛擬系統節點（第三版支持）。",
+        "enabled": "啟用並自動啟動",
+        "enabledHint": "保存配置後自動啟動服務；關閉則自動停止。",
+        "show": "顯示",
+        "hide": "隱藏",
+        "loadFailed": "加載代理服務狀態失敗",
+        "saveSuccess": "代理服務配置已保存",
+        "saveFailed": "保存代理服務配置失敗",
+        "startSuccess": "代理服務已啟動",
+        "startFailed": "啟動代理服務失敗",
+        "stopSuccess": "代理服務已停止",
+        "stopFailed": "停止代理服務失敗",
+        "restartSuccess": "代理服務已重啟",
+        "restartFailed": "重啟代理服務失敗",
+        "generatePassword": "隨機生成密碼"
+      },
+      "systemNode": "系統",
+      "systemNodeRemark": "本機代理服務自動生成"
     },
     "toggleVisibility": "切換可見性",
     "commonParams": {

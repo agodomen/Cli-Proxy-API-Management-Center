@@ -138,6 +138,7 @@ func runManagementCenter() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	manager.Stop()
+	apiServer.ShutdownProxyService(shutdownCtx)
 	if localRuntime != nil {
 		if err := localRuntime.Shutdown(shutdownCtx); err != nil {
 			log.Printf("shutdown embedded CLIProxyAPI: %v", err)

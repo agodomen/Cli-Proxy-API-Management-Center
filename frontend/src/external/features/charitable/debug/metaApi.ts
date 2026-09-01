@@ -16,6 +16,7 @@ export interface MetaAPIEntry {
   path: string;
   side: 'frontend' | 'backend';
   source: 'secondary' | 'community';
+  menu: string;
   fileRef: string;
   description: string;
 }
@@ -25,6 +26,7 @@ export interface MetaAPIStats {
   bySide: Record<string, number>;
   bySource: Record<string, number>;
   byGroup: Record<string, number>;
+  byMenu: Record<string, number>;
 }
 
 export interface MetaAPIListResponse {

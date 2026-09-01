@@ -1,238 +1,41 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUsageServiceStore } from '@/external/stores/useUsageServiceStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useNotificationStore } from '@/stores/useNotificationStore';
-import { debugCharitableRequest, type CharitableDebugRequest, type CharitableDebugResponse } from '../api';
-import { IconCheckCircle2, IconLoader2, IconRefreshCw } from '../../serviceProviders/ui/icons';
+import { Sheet } from '../../serviceProviders/ui/Sheet';
+import {
+  IconCheckCircle2,
+  IconLoader2,
+  IconRefreshCw,
+  IconSearch,
+} from '../../serviceProviders/ui/icons';
+import {
+  debugMetaApiRequest,
+  listMetaAPI,
+  type DebugMethod,
+  type MetaAPIEntry,
+  type MetaDebugResponse,
+} from './metaApi';
 import styles from '../CharitablePage.module.scss';
 
-type DebugMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+const DEFAULT_QUERY_TEXT = '{\n  "page": "1",\n  "page_size": "20"\n}';
+const DEFAULT_BODY_TEXT = '{\n  \n}';
 
-type EndpointTemplate = {
-  id: string;
-  group: string;
-  labelKey: string;
-  method: DebugMethod;
-  pathTemplate: string;
-  queryDefaults?: Record<string, string>;
-  bodyTemplate?: Record<string, unknown>;
-  notesKey?: string;
+const METHOD_OPTIONS: DebugMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+const METHOD_COLORS: Record<string, string> = {
+  GET: '#16a34a',
+  POST: '#3b82f6',
+  PUT: '#f59e0b',
+  DELETE: '#dc2626',
+  PATCH: '#8b5cf6',
+  ROUTE: '#6b7280',
 };
 
-const ENDPOINTS: EndpointTemplate[] = [
-  {
-    id: 'channels-list',
-    group: 'channels',
-    labelKey: 'charitable.debug.endpoints.channels_list',
-    method: 'GET',
-    pathTemplate: '/channels',
-    queryDefaults: { page: '1', page_size: '20', search: '' },
-    notesKey: 'charitable.debug.notes.list',
-  },
-  {
-    id: 'channels-create',
-    group: 'channels',
-    labelKey: 'charitable.debug.endpoints.channels_create',
-    method: 'POST',
-    pathTemplate: '/channels',
-    bodyTemplate: { channel_name: 'demo-channel', url: 'https://example.com', param: '{}' },
-  },
-  {
-    id: 'channels-get',
-    group: 'channels',
-    labelKey: 'charitable.debug.endpoints.channels_get',
-    method: 'GET',
-    pathTemplate: '/channels/{channelId}',
-  },
-  {
-    id: 'channels-update',
-    group: 'channels',
-    labelKey: 'charitable.debug.endpoints.channels_update',
-    method: 'PUT',
-    pathTemplate: '/channels/{channelId}',
-    bodyTemplate: { channel_name: 'demo-channel-updated', url: 'https://example.com', param: '{"mode":"debug"}' },
-  },
-  {
-    id: 'channels-delete',
-    group: 'channels',
-    labelKey: 'charitable.debug.endpoints.channels_delete',
-    method: 'DELETE',
-    pathTemplate: '/channels/{channelId}',
-  },
-  {
-    id: 'providers-list',
-    group: 'providers',
-    labelKey: 'charitable.debug.endpoints.providers_list',
-    method: 'GET',
-    pathTemplate: '/providers',
-    queryDefaults: { page: '1', page_size: '20', search: '', channel_id: '' },
-    notesKey: 'charitable.debug.notes.list',
-  },
-  {
-    id: 'providers-create',
-    group: 'providers',
-    labelKey: 'charitable.debug.endpoints.providers_create',
-    method: 'POST',
-    pathTemplate: '/providers',
-    bodyTemplate: {
-      provider_name: 'demo-provider',
-      channel_id: 1,
-      base_url: 'https://api.example.com',
-      param: '{}',
-    },
-  },
-  {
-    id: 'providers-get',
-    group: 'providers',
-    labelKey: 'charitable.debug.endpoints.providers_get',
-    method: 'GET',
-    pathTemplate: '/providers/{providerId}',
-  },
-  {
-    id: 'providers-update',
-    group: 'providers',
-    labelKey: 'charitable.debug.endpoints.providers_update',
-    method: 'PUT',
-    pathTemplate: '/providers/{providerId}',
-    bodyTemplate: {
-      provider_name: 'demo-provider-updated',
-      channel_id: 1,
-      base_url: 'https://api.example.com',
-      param: '{"tier":"debug"}',
-    },
-  },
-  {
-    id: 'providers-delete',
-    group: 'providers',
-    labelKey: 'charitable.debug.endpoints.providers_delete',
-    method: 'DELETE',
-    pathTemplate: '/providers/{providerId}',
-  },
-  {
-    id: 'keys-list',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_list',
-    method: 'GET',
-    pathTemplate: '/keys',
-    queryDefaults: { page: '1', page_size: '20', search: '', provider_id: '', status: '', api_type: '' },
-    notesKey: 'charitable.debug.notes.list',
-  },
-  {
-    id: 'keys-create',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_create',
-    method: 'POST',
-    pathTemplate: '/keys',
-    bodyTemplate: {
-      api_key: 'sk-debug-demo-123456',
-      api_type: 2,
-      status: 1,
-      priority: 0,
-      provider_id: 1,
-      content: 'debug content',
-      remark: 'debug remark',
-      param: '{}',
-    },
-  },
-  {
-    id: 'keys-get',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_get',
-    method: 'GET',
-    pathTemplate: '/keys/{keyId}',
-  },
-  {
-    id: 'keys-update',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_update',
-    method: 'PUT',
-    pathTemplate: '/keys/{keyId}',
-    bodyTemplate: {
-      api_key: 'sk-debug-demo-123456',
-      api_type: 6,
-      status: 0,
-      priority: 10,
-      provider_id: 1,
-      content: 'updated content',
-      remark: 'updated remark',
-      param: '{"source":"debug"}',
-    },
-  },
-  {
-    id: 'keys-delete',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_delete',
-    method: 'DELETE',
-    pathTemplate: '/keys/{keyId}',
-  },
-  {
-    id: 'keys-full-param',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_full_param',
-    method: 'GET',
-    pathTemplate: '/keys/{keyId}/full_param',
-    notesKey: 'charitable.debug.notes.full_param',
-  },
-  {
-    id: 'keys-param-get',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_param_get',
-    method: 'GET',
-    pathTemplate: '/keys/{keyId}/param',
-  },
-  {
-    id: 'keys-param-put',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_param_put',
-    method: 'PUT',
-    pathTemplate: '/keys/{keyId}/param',
-    bodyTemplate: { env: 'debug', models: [{ name: 'gpt-4.1', alias: 'GPT-4.1' }] },
-  },
-  {
-    id: 'keys-batch-delete',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_batch_delete',
-    method: 'POST',
-    pathTemplate: '/keys/batch/delete',
-    bodyTemplate: { ids: [1, 2] },
-  },
-  {
-    id: 'keys-batch-disable',
-    group: 'keys',
-    labelKey: 'charitable.debug.endpoints.keys_batch_disable',
-    method: 'POST',
-    pathTemplate: '/keys/batch/disable',
-    bodyTemplate: { ids: [1, 2], status: -2 },
-    notesKey: 'charitable.debug.notes.batch_disable',
-  },
-];
-
-const DEFAULT_PATH_PARAMS = {
-  channelId: '1',
-  providerId: '1',
-  keyId: '1',
-};
-
-const DEFAULT_QUERY_TEXT = (queryDefaults?: Record<string, string>) =>
-  JSON.stringify(queryDefaults ?? {}, null, 2);
-
-const DEFAULT_BODY_TEXT = (bodyTemplate?: Record<string, unknown>) =>
-  bodyTemplate ? JSON.stringify(bodyTemplate, null, 2) : '';
-
-const cleanRecord = (value: Record<string, string>) => {
-  const next: Record<string, string> = {};
-  Object.entries(value).forEach(([key, item]) => {
-    if (String(item ?? '').trim() !== '') {
-      next[key] = String(item).trim();
-    }
-  });
-  return next;
-};
-
-const tryParseObject = (raw: string): Record<string, string> => {
-  if (!raw.trim()) return {};
-  const parsed = JSON.parse(raw);
+function parseQueryRecord(raw: string): Record<string, string> {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  const parsed = JSON.parse(trimmed);
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('Expected a JSON object');
   }
@@ -241,96 +44,165 @@ const tryParseObject = (raw: string): Record<string, string> => {
     next[key] = value == null ? '' : String(value);
   });
   return next;
-};
+}
 
-const tryParseBody = (raw: string): unknown => {
-  if (!raw.trim()) return undefined;
-  return JSON.parse(raw);
-};
+function parseBody(raw: string): unknown {
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  return JSON.parse(trimmed);
+}
 
-const resolvePath = (template: string, values: Record<string, string>) =>
-  template.replace(/\{(channelId|providerId|keyId)\}/g, (_, key: keyof typeof DEFAULT_PATH_PARAMS) => {
-    return encodeURIComponent(values[key] || DEFAULT_PATH_PARAMS[key]);
+function resolveMetaPath(template: string, params: Record<string, string>): string {
+  return template.replace(/:(\w+)/g, (_, key: string) => {
+    const value = params[key];
+    return value ? encodeURIComponent(value) : `:${key}`;
   });
+}
 
-const buildPreviewUrl = (base: string, path: string, query: Record<string, string>) => {
-  const normalized = `${base.replace(/\/+$/, '')}/v0/cpamc/charitable${path.startsWith('/') ? path : `/${path}`}`;
-  const search = new URLSearchParams(query).toString();
-  return search ? `${normalized}?${search}` : normalized;
-};
+function extractPathParams(template: string): string[] {
+  const matches = template.match(/:(\w+)/g) ?? [];
+  return Array.from(new Set(matches.map((m) => m.slice(1))));
+}
 
 export function ApiDebugPanel() {
   const { t } = useTranslation();
   const baseUrl = useUsageServiceStore((s) => s.serviceBase);
-  const defaultManagementKey = useAuthStore((s) => s.managementKey);
+  const defaultManagementKey = useAuthStore((s) => s.managementKey) ?? '';
   const showNotification = useNotificationStore((s) => s.showNotification);
 
-  const [selectedEndpointId, setSelectedEndpointId] = useState(ENDPOINTS[0]?.id ?? '');
-  const [pathParams, setPathParams] = useState(DEFAULT_PATH_PARAMS);
-  const [queryText, setQueryText] = useState(DEFAULT_QUERY_TEXT(ENDPOINTS[0]?.queryDefaults));
-  const [bodyText, setBodyText] = useState(DEFAULT_BODY_TEXT(ENDPOINTS[0]?.bodyTemplate));
-  const [managementKey, setManagementKey] = useState(defaultManagementKey ?? '');
+  const [entries, setEntries] = useState<MetaAPIEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<CharitableDebugResponse | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Filters
+  const [search, setSearch] = useState('');
+  const [sideFilter, setSideFilter] = useState<'all' | 'frontend' | 'backend'>('all');
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'secondary' | 'community'>('all');
+  const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [menuFilter, setMenuFilter] = useState<string>('all');
+
+  // Drawer state
+  const [drawerEntry, setDrawerEntry] = useState<MetaAPIEntry | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [method, setMethod] = useState<DebugMethod>('GET');
+  const [pathParams, setPathParams] = useState<Record<string, string>>({});
+  const [queryText, setQueryText] = useState(DEFAULT_QUERY_TEXT);
+  const [bodyText, setBodyText] = useState(DEFAULT_BODY_TEXT);
+  const [managementKey, setManagementKey] = useState(defaultManagementKey);
+  const [sending, setSending] = useState(false);
+  const [response, setResponse] = useState<MetaDebugResponse | null>(null);
   const [responseError, setResponseError] = useState<string | null>(null);
 
-  const endpoint = useMemo(
-    () => ENDPOINTS.find((item) => item.id === selectedEndpointId) ?? ENDPOINTS[0],
-    [selectedEndpointId]
+  const loadCatalog = useCallback(async () => {
+    if (!baseUrl) {
+      setEntries([]);
+      return;
+    }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const result = await listMetaAPI(baseUrl, managementKey || undefined);
+      setEntries(result.items ?? []);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setLoadError(message);
+      showNotification(t('charitable.debug.metaLoadFailed'), 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [baseUrl, managementKey, showNotification, t]);
+
+  useEffect(() => {
+    void loadCatalog();
+  }, [loadCatalog]);
+
+  const groups = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => set.add(e.group));
+    return Array.from(set).sort();
+  }, [entries]);
+
+  const menus = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => set.add(e.menu));
+    return Array.from(set).sort();
+  }, [entries]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return entries.filter((e) => {
+      if (sideFilter !== 'all' && e.side !== sideFilter) return false;
+      if (sourceFilter !== 'all' && e.source !== sourceFilter) return false;
+      if (groupFilter !== 'all' && e.group !== groupFilter) return false;
+      if (menuFilter !== 'all' && e.menu !== menuFilter) return false;
+      if (term) {
+        const haystack = `${e.method} ${e.path} ${e.group} ${e.menu} ${e.description} ${e.fileRef}`.toLowerCase();
+        if (!haystack.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [entries, search, sideFilter, sourceFilter, groupFilter, menuFilter]);
+
+  const stats = useMemo(() => ({
+    total: entries.length,
+    backend: entries.filter((e) => e.side === 'backend').length,
+    frontend: entries.filter((e) => e.side === 'frontend').length,
+    secondary: entries.filter((e) => e.source === 'secondary').length,
+    community: entries.filter((e) => e.source === 'community').length,
+  }), [entries]);
+
+  const pathParamNames = useMemo(
+    () => (drawerEntry ? extractPathParams(drawerEntry.path) : []),
+    [drawerEntry]
   );
 
-  const groupedEndpoints = useMemo(() => {
-    const groups = new Map<string, EndpointTemplate[]>();
-    ENDPOINTS.forEach((item) => {
-      const list = groups.get(item.group) ?? [];
-      list.push(item);
-      groups.set(item.group, list);
-    });
-    return Array.from(groups.entries());
-  }, []);
-
   const resolvedPath = useMemo(
-    () => resolvePath(endpoint.pathTemplate, pathParams),
-    [endpoint.pathTemplate, pathParams]
+    () => (drawerEntry ? resolveMetaPath(drawerEntry.path, pathParams) : ''),
+    [drawerEntry, pathParams]
   );
 
   const previewUrl = useMemo(() => {
-    try {
-      const query = cleanRecord(tryParseObject(queryText));
-      return buildPreviewUrl(baseUrl || '', resolvedPath, query);
-    } catch {
-      return buildPreviewUrl(baseUrl || '', resolvedPath, {});
-    }
-  }, [baseUrl, queryText, resolvedPath]);
+    if (!drawerEntry) return '';
+    const normalized = baseUrl.replace(/\/+$/, '');
+    return `${normalized}${resolvedPath.startsWith('/') ? resolvedPath : `/${resolvedPath}`}`;
+  }, [drawerEntry, baseUrl, resolvedPath]);
 
-  const handleTemplateChange = (id: string) => {
-    const next = ENDPOINTS.find((item) => item.id === id);
-    if (!next) return;
-    setSelectedEndpointId(id);
-    setQueryText(DEFAULT_QUERY_TEXT(next.queryDefaults));
-    setBodyText(DEFAULT_BODY_TEXT(next.bodyTemplate));
+  const isBodyDisabled = method === 'GET' || method === 'DELETE';
+
+  const openDrawer = (entry: MetaAPIEntry) => {
+    setDrawerEntry(entry);
+    setDrawerOpen(true);
+    const methods = entry.method.split(',').map((m) => m.trim().toUpperCase());
+    const first = methods.find((m) => METHOD_OPTIONS.includes(m as DebugMethod)) as DebugMethod | undefined;
+    setMethod(first ?? 'GET');
+    setPathParams({});
+    setQueryText(DEFAULT_QUERY_TEXT);
+    setBodyText(DEFAULT_BODY_TEXT);
     setResponse(null);
     setResponseError(null);
   };
 
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+  };
+
   const resetCurrent = () => {
-    setQueryText(DEFAULT_QUERY_TEXT(endpoint.queryDefaults));
-    setBodyText(DEFAULT_BODY_TEXT(endpoint.bodyTemplate));
+    setQueryText(DEFAULT_QUERY_TEXT);
+    setBodyText(DEFAULT_BODY_TEXT);
     setResponse(null);
     setResponseError(null);
   };
 
   const executeRequest = async () => {
+    if (!drawerEntry) return;
     if (!baseUrl) {
       showNotification(t('charitable.debug.baseMissing'), 'error');
       return;
     }
 
-    let query: Record<string, string> = {};
-    let body: unknown = undefined;
-
+    let query: Record<string, string>;
     try {
-      query = cleanRecord(tryParseObject(queryText));
+      query = parseQueryRecord(queryText);
     } catch (error) {
       setResponse(null);
       setResponseError(error instanceof Error ? error.message : String(error));
@@ -338,8 +210,9 @@ export function ApiDebugPanel() {
       return;
     }
 
+    let body: unknown;
     try {
-      body = tryParseBody(bodyText);
+      body = parseBody(bodyText);
     } catch (error) {
       setResponse(null);
       setResponseError(error instanceof Error ? error.message : String(error));
@@ -347,27 +220,28 @@ export function ApiDebugPanel() {
       return;
     }
 
-    const request: CharitableDebugRequest = {
-      method: endpoint.method,
-      path: resolvedPath,
-      query,
-      body,
-      managementKey: managementKey.trim() || undefined,
-    };
-
-    setLoading(true);
+    setSending(true);
     setResponseError(null);
     try {
-      const result = await debugCharitableRequest(baseUrl, request);
+      const result = await debugMetaApiRequest(baseUrl, {
+        method,
+        path: resolvedPath,
+        query,
+        body,
+        managementKey: managementKey.trim() || undefined,
+      });
       setResponse(result);
-      showNotification(t('charitable.debug.requestDone', { status: result.status }), result.status >= 200 && result.status < 400 ? 'success' : 'warning');
+      showNotification(
+        t('charitable.debug.requestDone', { status: result.status }),
+        result.status >= 200 && result.status < 400 ? 'success' : 'warning'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setResponse(null);
       setResponseError(message);
       showNotification(t('charitable.debug.requestFailed'), 'error');
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
@@ -379,144 +253,261 @@ export function ApiDebugPanel() {
           <p className={styles.pageDesc}>{t('charitable.debug.workspaceApiDesc')}</p>
         </div>
         <div className={styles.actions}>
-          <button className={styles.btnSecondary} type="button" onClick={resetCurrent}>
-            <IconRefreshCw size={16} /> {t('charitable.debug.resetCurrent')}
-          </button>
-          <button className={styles.btnPrimary} type="button" onClick={executeRequest} disabled={loading}>
-            {loading ? <IconLoader2 size={16} /> : <IconCheckCircle2 size={16} />}
-            {t('charitable.debug.execute')}
+          <button className={styles.btnSecondary} type="button" onClick={() => void loadCatalog()} disabled={loading}>
+            {loading ? <IconLoader2 size={16} /> : <IconRefreshCw size={16} />}
+            {t('charitable.debug.refreshCatalog')}
           </button>
         </div>
       </header>
 
-      <div className={styles.debugLayout}>
-        <aside className={styles.debugSidebar}>
-          <div className={styles.debugSectionTitle}>{t('charitable.debug.templates')}</div>
-          {groupedEndpoints.map(([group, entries]) => (
-            <div key={group} className={styles.debugTemplateGroup}>
-              <div className={styles.debugTemplateGroupTitle}>{t(`charitable.${group}`)}</div>
-              <div className={styles.debugTemplateList}>
-                {entries.map((item) => (
+      {/* Filter bar */}
+      <div className={styles.debugCard}>
+        <div className={styles.formRow}>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('charitable.debug.metaSearch')}</label>
+            <div className={styles.searchRow}>
+              <IconSearch size={16} />
+              <input
+                className={styles.input}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t('charitable.debug.metaSearchPlaceholder')}
+              />
+            </div>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('charitable.debug.metaFilterSide')}</label>
+            <select className={styles.input} value={sideFilter} onChange={(e) => setSideFilter(e.target.value as 'all' | 'frontend' | 'backend')}>
+              <option value="all">{t('charitable.debug.metaFilterAll')}</option>
+              <option value="backend">{t('charitable.debug.metaFilterBackend')}</option>
+              <option value="frontend">{t('charitable.debug.metaFilterFrontend')}</option>
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('charitable.debug.metaFilterSource')}</label>
+            <select className={styles.input} value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value as 'all' | 'secondary' | 'community')}>
+              <option value="all">{t('charitable.debug.metaFilterAll')}</option>
+              <option value="secondary">{t('charitable.debug.metaFilterSecondary')}</option>
+              <option value="community">{t('charitable.debug.metaFilterCommunity')}</option>
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('charitable.debug.metaFilterGroup')}</label>
+            <select className={styles.input} value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+              <option value="all">{t('charitable.debug.metaFilterAll')}</option>
+              {groups.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('charitable.debug.metaFilterMenu')}</label>
+            <select className={styles.input} value={menuFilter} onChange={(e) => setMenuFilter(e.target.value)}>
+              <option value="all">{t('charitable.debug.metaFilterAll')}</option>
+              {menus.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className={styles.fieldHint}>
+          {t('charitable.debug.metaStats', { total: stats.total, backend: stats.backend, frontend: stats.frontend, secondary: stats.secondary, community: stats.community, shown: filtered.length })}
+        </div>
+      </div>
+
+      {loadError ? <div className={styles.errorBox}>{loadError}</div> : null}
+
+      {/* API catalog table */}
+      <div className={styles.debugCard}>
+        <div className={styles.debugCardHeader}>
+          <div className={styles.debugCardTitle}>
+            {t('charitable.debug.metaCatalog')} ({filtered.length})
+          </div>
+        </div>
+        <div className={styles.apiCatalogTable}>
+          <div className={styles.apiCatalogHeader}>
+            <div className={styles.apiColMethod}>{t('charitable.debug.apiColMethod')}</div>
+            <div className={styles.apiColPath}>{t('charitable.debug.apiColPath')}</div>
+            <div className={styles.apiColGroup}>{t('charitable.debug.apiColGroup')}</div>
+            <div className={styles.apiColMenu}>{t('charitable.debug.apiColMenu')}</div>
+            <div className={styles.apiColSide}>{t('charitable.debug.apiColSide')}</div>
+            <div className={styles.apiColSource}>{t('charitable.debug.apiColSource')}</div>
+            <div className={styles.apiColDesc}>{t('charitable.debug.apiColDesc')}</div>
+          </div>
+          <div className={styles.apiCatalogBody}>
+            {filtered.length === 0 ? (
+              <div className={styles.apiCatalogEmpty}>
+                {loading ? t('charitable.debug.metaLoading') : t('charitable.debug.metaEmpty')}
+              </div>
+            ) : (
+              filtered.map((entry) => {
+                const methods = entry.method.split(',').map((m) => m.trim());
+                const primaryMethod = methods[0] ?? 'GET';
+                const color = METHOD_COLORS[primaryMethod] ?? '#6b7280';
+                return (
                   <button
-                    key={item.id}
+                    key={entry.id}
                     type="button"
-                    className={item.id == endpoint.id ? styles.debugTemplateBtnActive : styles.debugTemplateBtn}
-                    onClick={() => handleTemplateChange(item.id)}
+                    className={styles.apiCatalogRow}
+                    onClick={() => openDrawer(entry)}
+                    title={entry.fileRef}
                   >
-                    <span className={styles.debugMethod}>{item.method}</span>
-                    <span className={styles.debugTemplateLabel}>{t(item.labelKey)}</span>
+                    <div className={styles.apiColMethod}>
+                      <span className={styles.apiMethodBadge} style={{ color, borderColor: color }}>
+                        {primaryMethod}
+                      </span>
+                    </div>
+                    <div className={styles.apiColPath}>
+                      <code className={styles.apiPathCode}>{entry.path}</code>
+                    </div>
+                    <div className={styles.apiColGroup}>{entry.group}</div>
+                    <div className={styles.apiColMenu}>{entry.menu}</div>
+                    <div className={styles.apiColSide}>
+                      <span className={entry.side === 'backend' ? styles.apiSideBackend : styles.apiSideFrontend}>
+                        {entry.side}
+                      </span>
+                    </div>
+                    <div className={styles.apiColSource}>
+                      <span className={entry.source === 'secondary' ? styles.apiSourceSecondary : styles.apiSourceCommunity}>
+                        {entry.source}
+                      </span>
+                    </div>
+                    <div className={styles.apiColDesc}>{entry.description}</div>
                   </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Debug drawer */}
+      <Sheet
+        open={drawerOpen}
+        onClose={closeDrawer}
+        size="xl"
+        eyebrow={
+          drawerEntry ? (
+            <span className={styles.apiMethodBadge} style={{ color: METHOD_COLORS[method] ?? '#6b7280', borderColor: METHOD_COLORS[method] ?? '#6b7280' }}>
+              {method}
+            </span>
+          ) : null
+        }
+        title={drawerEntry?.description ?? ''}
+        description={
+          drawerEntry ? (
+            <code className={styles.apiPathCode}>{drawerEntry.path}</code>
+          ) : null
+        }
+        footer={
+          <div className={styles.drawerFooter}>
+            <button className={styles.btnSecondary} type="button" onClick={resetCurrent}>
+              <IconRefreshCw size={16} /> {t('charitable.debug.resetCurrent')}
+            </button>
+            <button className={styles.btnPrimary} type="button" onClick={executeRequest} disabled={sending}>
+              {sending ? <IconLoader2 size={16} /> : <IconCheckCircle2 size={16} />}
+              {t('charitable.debug.execute')}
+            </button>
+          </div>
+        }
+      >
+        {drawerEntry && (
+          <div className={styles.drawerBody}>
+            <div className={styles.debugCard}>
+              <div className={styles.formRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>{t('charitable.debug.baseUrl')}</label>
+                  <input className={styles.input} value={baseUrl} readOnly />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>{t('charitable.debug.managementKey')}</label>
+                  <input
+                    className={styles.input}
+                    value={managementKey}
+                    onChange={(e) => setManagementKey(e.target.value)}
+                    placeholder={t('charitable.debug.managementKeyPlaceholder')}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.formRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>{t('charitable.debug.metaMethod')}</label>
+                  <select
+                    className={styles.input}
+                    value={method}
+                    onChange={(e) => setMethod(e.target.value as DebugMethod)}
+                  >
+                    {METHOD_OPTIONS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                {pathParamNames.map((name) => (
+                  <div key={name} className={styles.field}>
+                    <label className={styles.label}>:{name}</label>
+                    <input
+                      className={styles.input}
+                      value={pathParams[name] ?? ''}
+                      onChange={(e) => setPathParams((prev) => ({ ...prev, [name]: e.target.value }))}
+                    />
+                  </div>
                 ))}
               </div>
-            </div>
-          ))}
-        </aside>
 
-        <section className={styles.debugMain}>
-          <div className={styles.debugCard}>
-            <div className={styles.debugCardHeader}>
-              <div>
-                <div className={styles.debugCardTitle}>{t(endpoint.labelKey)}</div>
-                <div className={styles.debugCardSubline}>{endpoint.method} {endpoint.pathTemplate}</div>
+              <div className={styles.field}>
+                <label className={styles.label}>{t('charitable.debug.previewUrl')}</label>
+                <div className={styles.codeBlock}>{previewUrl}</div>
               </div>
-              {endpoint.notesKey ? <div className={styles.debugNote}>{t(endpoint.notesKey)}</div> : null}
-            </div>
 
-            <div className={styles.formRow}>
-              <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.baseUrl')}</label>
-                <input className={styles.input} value={baseUrl} readOnly />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.managementKey')}</label>
-                <input
-                  className={styles.input}
-                  value={managementKey}
-                  onChange={(event) => setManagementKey(event.target.value)}
-                  placeholder={t('charitable.debug.managementKeyPlaceholder')}
-                />
-              </div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.channelId')}</label>
-                <input
-                  className={styles.input}
-                  value={pathParams.channelId}
-                  onChange={(event) => setPathParams((prev) => ({ ...prev, channelId: event.target.value }))}
-                />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.providerId')}</label>
-                <input
-                  className={styles.input}
-                  value={pathParams.providerId}
-                  onChange={(event) => setPathParams((prev) => ({ ...prev, providerId: event.target.value }))}
-                />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.keyId')}</label>
-                <input
-                  className={styles.input}
-                  value={pathParams.keyId}
-                  onChange={(event) => setPathParams((prev) => ({ ...prev, keyId: event.target.value }))}
-                />
+              <div className={styles.formRow}>
+                <div className={styles.field}>
+                  <label className={styles.label}>{t('charitable.debug.query')}</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={queryText}
+                    onChange={(e) => setQueryText(e.target.value)}
+                    rows={6}
+                  />
+                </div>
+                <div className={styles.field}>
+                  <label className={styles.label}>{t('charitable.debug.body')}</label>
+                  <textarea
+                    className={styles.textarea}
+                    value={bodyText}
+                    onChange={(e) => setBodyText(e.target.value)}
+                    rows={6}
+                    disabled={isBodyDisabled}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>{t('charitable.debug.previewUrl')}</label>
-              <div className={styles.codeBlock}>{previewUrl}</div>
-            </div>
-
-            <div className={styles.formRow}>
-              <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.query')}</label>
-                <textarea
-                  className={styles.textarea}
-                  value={queryText}
-                  onChange={(event) => setQueryText(event.target.value)}
-                  rows={10}
-                />
+            <div className={styles.debugCard}>
+              <div className={styles.debugCardHeader}>
+                <div className={styles.debugCardTitle}>{t('charitable.debug.response')}</div>
+                {response ? (
+                  <span className={response.status >= 200 && response.status < 400 ? styles.badge_green : styles.badge_red}>
+                    HTTP {response.status}
+                  </span>
+                ) : null}
               </div>
+
+              {responseError ? <div className={styles.errorBox}>{responseError}</div> : null}
+
               <div className={styles.field}>
-                <label className={styles.label}>{t('charitable.debug.body')}</label>
-                <textarea
-                  className={styles.textarea}
-                  value={bodyText}
-                  onChange={(event) => setBodyText(event.target.value)}
-                  rows={10}
-                  disabled={endpoint.method === 'GET' || endpoint.method === 'DELETE'}
-                />
+                <label className={styles.label}>{t('charitable.debug.responseHeaders')}</label>
+                <pre className={styles.codeBlock}>{JSON.stringify(response?.headers ?? {}, null, 2)}</pre>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.label}>{t('charitable.debug.responseBody')}</label>
+                <pre className={styles.codeBlock}>{JSON.stringify(response?.data ?? null, null, 2)}</pre>
               </div>
             </div>
           </div>
-
-          <div className={styles.debugCard}>
-            <div className={styles.debugCardHeader}>
-              <div className={styles.debugCardTitle}>{t('charitable.debug.response')}</div>
-              {response ? (
-                <span className={response.status >= 200 && response.status < 400 ? styles.badge_green : styles.badge_red}>
-                  HTTP {response.status}
-                </span>
-              ) : null}
-            </div>
-
-            {responseError ? <div className={styles.errorBox}>{responseError}</div> : null}
-
-            <div className={styles.field}>
-              <label className={styles.label}>{t('charitable.debug.responseHeaders')}</label>
-              <pre className={styles.codeBlock}>{JSON.stringify(response?.headers ?? {}, null, 2)}</pre>
-            </div>
-
-            <div className={styles.field}>
-              <label className={styles.label}>{t('charitable.debug.responseBody')}</label>
-              <pre className={styles.codeBlock}>{JSON.stringify(response?.data ?? null, null, 2)}</pre>
-            </div>
-          </div>
-        </section>
-      </div>
+        )}
+      </Sheet>
     </div>
   );
 }
